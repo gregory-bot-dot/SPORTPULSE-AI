@@ -542,6 +542,158 @@ const App = {
     }
   },
 
+  // ==========================================
+  // HEAD TO HEAD — AFFICHAGE DES CONFRONTATIONS
+  // ==========================================
+
+  renderHeadToHead(data, homeId, awayId) {
+    const container = document.getElementById("match-h2h-content");
+
+    if (!container) return;
+
+    const matches = data?.response || [];
+
+    if (!matches.length) {
+      container.innerHTML = `
+        <div class="dashboard-empty">
+          Aucune confrontation directe disponible.
+        </div>
+      `;
+      return;
+    }
+
+    let homeWins = 0;
+    let awayWins = 0;
+    let draws = 0;
+
+    const rows = matches.map(match => {
+      const fixture = match.fixture || {};
+      const teams = match.teams || {};
+      const goals = match.goals || {};
+
+      const matchHome = teams.home || {};
+      const matchAway = teams.away || {};
+
+      const homeGoals = goals.home;
+      const awayGoals = goals.away;
+
+      if (homeGoals === null || awayGoals === null ||
+          homeGoals === undefined || awayGoals === undefined) {
+        return "";
+      }
+
+      const isHomeTeamHome =
+        String(matchHome.id) === String(homeId);
+
+      const selectedHomeGoals = isHomeTeamHome
+        ? homeGoals
+        : awayGoals;
+
+      const selectedAwayGoals = isHomeTeamHome
+        ? awayGoals
+        : homeGoals;
+
+      let result = "N";
+
+      if (selectedHomeGoals > selectedAwayGoals) {
+        homeWins++;
+        result = "V";
+      } else if (selectedHomeGoals < selectedAwayGoals) {
+        awayWins++;
+        result = "D";
+      } else {
+        draws++;
+      }
+
+      const opponent = isHomeTeamHome
+        ? matchAway.name
+        : matchHome.name;
+
+      const date = fixture.date
+        ? new Date(fixture.date).toLocaleDateString("fr-FR")
+        : "Date inconnue";
+
+      return `
+        <div class="h2h-match-row">
+          <div>
+            <strong>${this.escapeHTML(opponent || "Adversaire")}</strong>
+            <div class="dashboard-subtitle">${date}</div>
+          </div>
+
+          <strong>${selectedHomeGoals} - ${selectedAwayGoals}</strong>
+
+          <span class="h2h-result">${result}</span>
+        </div>
+      `;
+    }).filter(Boolean);
+
+    if (!rows.length) {
+      container.innerHTML = `
+        <div class="dashboard-empty">
+          Aucun résultat terminé disponible.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="h2h-summary">
+        <div class="h2h-stat">
+          <strong>${homeWins}</strong>
+          <span>Victoires domicile</span>
+        </div>
+
+        <div class="h2h-stat">
+          <strong>${draws}</strong>
+          <span>Matchs nuls</span>
+        </div>
+
+        <div class="h2h-stat">
+          <strong>${awayWins}</strong>
+          <span>Victoires extérieur</span>
+        </div>
+      </div>
+
+      <div class="h2h-match-list">
+        ${rows.join("")}
+      </div>
+    `;
+  },
+
+  // ==========================================
+  // HEAD TO HEAD — CHARGEMENT API
+  // ==========================================
+
+  async loadHeadToHead(homeId, awayId) {
+    const container = document.getElementById("match-h2h-content");
+
+    if (!container) return;
+
+    container.innerHTML = `
+      <div class="dashboard-empty">
+        Chargement des confrontations directes...
+      </div>
+    `;
+
+    try {
+      const data = await SportsData.getHeadToHead(
+        homeId,
+        awayId
+      );
+
+      this.renderHeadToHead(data, homeId, awayId);
+
+    } catch (error) {
+      console.error("SPORTPULSE H2H ERROR:", error);
+
+      container.innerHTML = `
+        <div class="dashboard-empty">
+          Impossible de charger les confrontations directes.
+        </div>
+      `;
+    }
+  },
+
   openMatchDetail(match) {
     this.selectedMatch = match;
 
