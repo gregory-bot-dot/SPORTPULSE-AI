@@ -4,6 +4,7 @@
 ========================================== */
 
 const Dashboard = {
+
   render() {
     const today = new Date().toLocaleDateString("fr-FR", {
       weekday: "long",
@@ -23,10 +24,7 @@ const Dashboard = {
           <div class="dashboard-date">${today}</div>
         </section>
 
-        <!-- KEY INDICATORS -->
-
         <section class="dashboard-stats">
-
           <article class="dashboard-stat">
             <span class="dashboard-stat-label">MATCHS DU JOUR</span>
             <strong class="dashboard-stat-value">—</strong>
@@ -50,15 +48,11 @@ const Dashboard = {
             <strong class="dashboard-stat-value">—</strong>
             <span class="dashboard-stat-note">Historique insuffisant</span>
           </article>
-
         </section>
-
-        <!-- MAIN CONTENT -->
 
         <section class="dashboard-grid">
 
           <div class="dashboard-panel">
-
             <div class="dashboard-panel-header">
               <div>
                 <h2 class="dashboard-panel-title">Matchs à suivre</h2>
@@ -66,22 +60,29 @@ const Dashboard = {
                   Calendrier sportif du jour
                 </p>
               </div>
-
               <span class="badge badge-neutral">LIVE & MATCHS</span>
             </div>
 
-            <div class="dashboard-empty">
-              <strong>Aucun match disponible</strong>
-              <p>
-                Connectez une source sportive pour récupérer
-                les rencontres et leurs statistiques.
-              </p>
+            <div class="dashboard-matches-actions">
+              <button
+                class="btn btn-primary"
+                type="button"
+                onclick="window.SPORTPULSE_MATCHES.loadToday()"
+              >
+                ⚽ Charger les matchs du jour
+              </button>
             </div>
 
+            <div id="dashboard-matches" class="dashboard-empty">
+              <strong>En attente de récupération</strong>
+              <p>
+                Appuyez sur le bouton pour récupérer
+                les rencontres depuis notre source sportive.
+              </p>
+            </div>
           </div>
 
           <div class="dashboard-panel">
-
             <div class="dashboard-panel-header">
               <div>
                 <h2 class="dashboard-panel-title">Moteur SPORTPULSE</h2>
@@ -106,9 +107,9 @@ const Dashboard = {
                 <div class="dashboard-engine-icon">⚽</div>
                 <div class="dashboard-engine-info">
                   <strong>Football Engine</strong>
-                  <small>En préparation</small>
+                  <small>Connexion API préparée</small>
                 </div>
-                <span class="badge badge-neutral">OFF</span>
+                <span class="badge badge-neutral">TEST</span>
               </div>
 
               <div class="dashboard-engine">
@@ -130,26 +131,19 @@ const Dashboard = {
               </div>
 
             </div>
-
           </div>
 
         </section>
 
-        <!-- ACTIVITY -->
-
         <section class="dashboard-panel">
-
           <div class="dashboard-panel-header">
             <div>
               <h2 class="dashboard-panel-title">Activité récente</h2>
-              <p class="dashboard-panel-subtitle">
-                État du projet
-              </p>
+              <p class="dashboard-panel-subtitle">État du projet</p>
             </div>
           </div>
 
           <div class="dashboard-activity">
-
             <div class="dashboard-activity-item">
               <span class="dashboard-activity-dot"></span>
               <span>Interface SPORTPULSE AI initialisée.</span>
@@ -162,17 +156,15 @@ const Dashboard = {
 
             <div class="dashboard-activity-item">
               <span class="dashboard-activity-dot"></span>
-              <span>Connexion aux données sportives à venir.</span>
+              <span>Connexion aux données sportives préparée.</span>
             </div>
-
           </div>
-
         </section>
 
         <p class="dashboard-disclaimer">
           SPORTPULSE AI est un outil d'analyse statistique.
           Les prédictions ne garantissent aucun résultat.
-          Les données sportives et les cotes seront affichées
+          Les données sportives et les cotes sont affichées
           uniquement après connexion de sources vérifiées.
         </p>
 
