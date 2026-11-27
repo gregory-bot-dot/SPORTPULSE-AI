@@ -508,3 +508,56 @@
     flex-wrap: wrap;
   }
 }
+
+/* =====================================
+   SPORTPULSE — LEAGUE SELECTOR
+===================================== */
+
+.matches-league-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.matches-league-filter label {
+  color: #89959F;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .8px;
+}
+
+.matches-league-filter select {
+  width: 100%;
+  max-width: 360px;
+  min-height: 46px;
+  padding: 0 42px 0 14px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 11px;
+  background: #111922;
+  color: #F1F5F2;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23B6F34A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+
+.matches-league-filter select:focus {
+  border-color: #B6F34A;
+}
+
+.matches-league-filter option {
+  background: #111922;
+  color: #F1F5F2;
+}
+
+@media (min-width: 700px) {
+  .matches-league-filter {
+    max-width: 400px;
+  }
+}
