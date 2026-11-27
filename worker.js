@@ -71,7 +71,7 @@ export default {
       }
 
       endpoint = `/fixtures?date=${encodeURIComponent(date)}`;
-      cacheDuration = 300;
+      cacheDuration = 600;
 
     } else if (path === "/football/live") {
       endpoint = "/fixtures?live=all";
@@ -79,7 +79,7 @@ export default {
 
     } else if (path === "/football/leagues") {
       endpoint = "/leagues?current=true";
-      cacheDuration = 3600;
+      cacheDuration = 86400;
 
     } else if (path === "/football/statistics") {
       const fixture = url.searchParams.get("fixture");
@@ -89,7 +89,7 @@ export default {
       }
 
       endpoint = `/fixtures/statistics?fixture=${encodeURIComponent(fixture)}`;
-      cacheDuration = 300;
+      cacheDuration = 1800;
 
     } else if (path === "/football/team-form") {
       const team = url.searchParams.get("team");
@@ -99,7 +99,7 @@ export default {
       }
 
       endpoint = `/fixtures?team=${encodeURIComponent(team)}&last=5`;
-      cacheDuration = 300;
+      cacheDuration = 21600;
 
     } else if (path === "/football/head-to-head") {
       const home = url.searchParams.get("home");
@@ -120,7 +120,7 @@ export default {
       endpoint =
         `/fixtures/headtohead?h2h=${encodeURIComponent(home)}-${encodeURIComponent(away)}&last=5`;
 
-      cacheDuration = 300;
+      cacheDuration = 21600;
 
     } else {
       return json({ error: "Route inconnue" }, 404);
