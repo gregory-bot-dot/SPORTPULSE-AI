@@ -413,6 +413,135 @@ const App = {
     }
   },
 
+  renderTeamForm(data, teamId, teamName) {
+    const matches = data?.response || [];
+
+    const containerId = `team-form-${teamId}`;
+    const container = document.getElementById(containerId);
+
+    if (!container) return;
+
+    const finishedMatches = matches.filter((match) => {
+      return match.goals?.home !== null &&
+        match.goals?.home !== undefined &&
+        match.goals?.away !== null &&
+        match.goals?.away !== undefined;
+    });
+
+    if (finishedMatches.length === 0) {
+      container.innerHTML = `
+        <div class="dashboard-empty">
+          Aucun résultat récent disponible.
+        </div>
+      `;
+      return;
+    }
+
+    let wins = 0;
+    let draws = 0;
+    let losses = 0;
+
+    const rows = finishedMatches.map((match) => {
+      const isHome = String(match.teams?.home?.id) === String(teamId);
+
+      const scored = isHome ? match.goals.home : match.goals.away;
+      const conceded = isHome ? match.goals.away : match.goals.home;
+
+      const opponent = isHome
+        ? match.teams?.away?.name
+        : match.teams?.home?.name;
+
+      let result;
+      let resultLabel;
+
+      if (scored > conceded) {
+        result = "win";
+        resultLabel = "V";
+        wins++;
+      } else if (scored === conceded) {
+        result = "draw";
+        resultLabel = "N";
+        draws++;
+      } else {
+        result = "loss";
+        resultLabel = "D";
+        losses++;
+      }
+
+      const date = match.fixture?.date
+        ? new Date(match.fixture.date).toLocaleDateString("fr-FR", {
+            day: "2-digit",
+            month: "2-digit"
+          })
+        : "--";
+
+      return `
+        <div class="team-form-match">
+          <span class="team-form-result ${result}">
+            ${resultLabel}
+          </span>
+          <span class="team-form-opponent">
+            ${this.escapeHTML(opponent || "Adversaire")}
+          </span>
+          <span class="team-form-score">
+            ${scored} - ${conceded}
+          </span>
+          <span class="team-form-date">${date}</span>
+        </div>
+      `;
+    }).join("");
+
+    container.innerHTML = `
+      <div class="team-form-summary">
+        <span class="win">${wins} victoire(s)</span>
+        <span class="draw">${draws} nul(s)</span>
+        <span class="loss">${losses} défaite(s)</span>
+      </div>
+      <div class="team-form-list">
+        ${rows}
+      </div>
+    `;
+  },
+
+  async loadTeamForm(teamId, teamName, fixtureId) {
+    const container = document.getElementById(`team-form-${teamId}`);
+
+    if (!container) return;
+
+    container.innerHTML = `
+      <div class="dashboard-empty">
+        Chargement des cinq derniers matchs...
+      </div>
+    `;
+
+    try {
+      const data = await window.SPORTPULSE_DATA.getTeamForm(teamId);
+
+      if (data.errors && Object.keys(data.errors).length > 0) {
+        throw new Error(JSON.stringify(data.errors));
+      }
+
+      if (
+        String(this.selectedMatch?.fixture?.id) !== String(fixtureId)
+      ) return;
+
+      this.renderTeamForm(data, teamId, teamName);
+
+    } catch (error) {
+      console.error("SPORTPULSE TEAM FORM:", error);
+
+      if (
+        String(this.selectedMatch?.fixture?.id) !== String(fixtureId)
+      ) return;
+
+      container.innerHTML = `
+        <div class="dashboard-empty">
+          Impossible de récupérer la forme récente.
+        </div>
+      `;
+    }
+  },
+
   openMatchDetail(match) {
     this.selectedMatch = match;
 
