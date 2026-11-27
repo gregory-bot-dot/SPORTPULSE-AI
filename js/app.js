@@ -1060,12 +1060,12 @@ const App = {
     this.loadMatchStatistics(fixture.id);
 
     if (home.id) {
-      this.loadTeamForm(home.id, home.name, fixture.id);
-    }
+  this.loadTeamForm(home.id, home.name, fixture.id, league);
+}
 
-    if (away.id) {
-      this.loadTeamForm(away.id, away.name, fixture.id);
-    }
+if (away.id) {
+  this.loadTeamForm(away.id, away.name, fixture.id, league);
+}
 
     if (home.id && away.id) {
       this.loadHeadToHead(home.id, away.id);
