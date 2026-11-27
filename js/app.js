@@ -267,7 +267,46 @@ const App = {
       });
     }
   },
+formatDiagnosticError(error) {
+  const raw = String(error?.message || error || "Erreur inconnue");
+  const lower = raw.toLowerCase();
 
+  if (
+    lower.includes("ratelimit") ||
+    lower.includes("rate limit") ||
+    lower.includes("too many requests") ||
+    lower.includes("429")
+  ) {
+    return "Limite de requêtes API atteinte. Attendez quelques instants avant de réessayer.";
+  }
+
+  if (
+    lower.includes("timeout") ||
+    lower.includes("timed out") ||
+    lower.includes("abort")
+  ) {
+    return "La requête a expiré. Le serveur sportif met trop de temps à répondre.";
+  }
+
+  if (lower.includes("403") || lower.includes("forbidden")) {
+    return "Accès API refusé (403). Vérifiez les droits ou le quota de votre abonnement.";
+  }
+
+  if (lower.includes("401") || lower.includes("unauthorized")) {
+    return "Authentification API refusée (401). Vérifiez la configuration côté serveur.";
+  }
+
+  if (
+    lower.includes("500") ||
+    lower.includes("502") ||
+    lower.includes("503") ||
+    lower.includes("server")
+  ) {
+    return "Le serveur sportif rencontre une erreur. Réessayez plus tard.";
+  }
+
+  return raw.length > 180 ? raw.slice(0, 180) + "…" : raw;
+},
   escapeHTML(value) {
     return String(value ?? "").replace(/[&<>"']/g, (char) => ({
       "&": "&amp;",
