@@ -1,11 +1,12 @@
 
 /* ==========================================
    SPORTPULSE AI — SECURE API WORKER
+   API-FOOTBALL + API NINJAS
    FREE PLAN OPTIMIZED
-   CACHE + STATISTICS + TEAM FORM + H2H
 ========================================== */
 
 const API_BASE = "https://v3.football.api-sports.io";
+const NINJAS_BASE = "https://api.api-ninjas.com/v1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,6 +38,35 @@ async function footballRequest(endpoint, apiKey) {
   }
 
   return response.json();
+}
+
+async function ninjasRequest(endpoint, apiKey) {
+  const response = await fetch(`${NINJAS_BASE}${endpoint}`, {
+    headers: {
+      "X-Api-Key": apiKey
+    }
+  });
+
+  const text = await response.text();
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(`Réponse API Ninjas invalide : HTTP ${response.status}`);
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data.error || `API Ninjas HTTP ${response.status}`
+    );
+  }
+
+  if (data && data.error) {
+    throw new Error(data.error);
+  }
+
+  return data;
 }
 
 // Ne conserver que les cinq derniers matchs terminés.
@@ -77,14 +107,135 @@ export default {
       return json({ error: "Methode non autorisee" }, 405);
     }
 
+    const url = new URL(request.url);
+    const path = url.pathname;
+
+    /* ======================================
+       API NINJAS — ROUTE DE TEST
+       /test/api-ninjas?league=ligue1
+    ====================================== */
+
+    if (path === "/test/api-ninjas") {
+
+      if (!env.API_NINJAS_KEY) {
+        return json({
+          error: "Clé API Ninjas non configurée sur le serveur"
+        }, 503);
+      }
+
+      const league = (
+        url.searchParams.get("league") || ""
+      ).toLowerCase();
+
+      const allowedLeagues = [
+        "ligue1",
+        "epl",
+        "ucl"
+      ];
+
+      if (!allowedLeagues.includes(league)) {
+        return json({
+          error: "Championnat non autorisé pour ce test",
+          allowed: allowedLeagues
+        }, 400);
+      }
+
+      const season = "2026";
+      const endpoint =
+        `/soccermatches?league=${encodeURIComponent(league)}` +
+        `&season=${season}&offset=0`;
+
+      const cache = caches.default;
+      const cacheKey = new Request(url.toString(), {
+        method: "GET"
+      });
+
+      try {
+
+        const cachedResponse = await cache.match(cacheKey);
+
+        if (cachedResponse) {
+          const headers = new Headers(cachedResponse.headers);
+          headers.set("X-SPORTPULSE-CACHE", "HIT");
+
+          return new Response(cachedResponse.body, {
+            status: cachedResponse.status,
+            headers
+          });
+        }
+
+        const matches = await ninjasRequest(
+          endpoint,
+          env.API_NINJAS_KEY
+        );
+
+        if (!Array.isArray(matches)) {
+          return json({
+            error: "Format de réponse API Ninjas inattendu",
+            receivedType: typeof matches
+          }, 502);
+        }
+
+        const sample = matches.slice(0, 5).map(match => ({
+          game_id: match.game_id,
+          date: match.date,
+          status: match.status,
+          home_team: match.home_team?.name,
+          away_team: match.away_team?.name,
+          home_score: match.home_score,
+          away_score: match.away_score
+        }));
+
+        const result = {
+          success: true,
+          provider: "API Ninjas",
+          league,
+          season,
+          returned: matches.length,
+          sample,
+          message: matches.length > 0
+            ? "Données récupérées avec succès"
+            : "Aucun match retourné pour cette requête"
+        };
+
+        const response = new Response(
+          JSON.stringify(result),
+          {
+            status: 200,
+            headers: {
+              ...corsHeaders,
+              "Cache-Control": "public, max-age=3600",
+              "X-SPORTPULSE-CACHE": "MISS"
+            }
+          }
+        );
+
+        await cache.put(cacheKey, response.clone());
+
+        return response;
+
+      } catch (error) {
+
+        console.error("API NINJAS TEST:", error);
+
+        return json({
+          success: false,
+          provider: "API Ninjas",
+          league,
+          error: error.message
+        }, 502);
+      }
+    }
+
+    /* ======================================
+       API FOOTBALL — ROUTES EXISTANTES
+    ====================================== */
+
     if (!env.API_FOOTBALL_KEY) {
       return json({
         error: "Cle API non configuree sur le serveur"
       }, 503);
     }
-
-    const url = new URL(request.url);
-    const path = url.pathname;
 
     let endpoint;
     let cacheDuration;
@@ -119,7 +270,9 @@ export default {
         return json({ error: "Identifiant du match invalide" }, 400);
       }
 
-      endpoint = `/fixtures/statistics?fixture=${encodeURIComponent(fixture)}`;
+      endpoint =
+        `/fixtures/statistics?fixture=${encodeURIComponent(fixture)}`;
+
       cacheDuration = 1800;
 
     } else if (path === "/football/team-form") {
@@ -132,7 +285,6 @@ export default {
 
       const season = new Date().getUTCFullYear();
 
-      // Pas de paramètre last : incompatible avec le forfait Free.
       endpoint =
         `/fixtures?team=${encodeURIComponent(team)}&season=${season}`;
 
@@ -156,7 +308,6 @@ export default {
         }, 400);
       }
 
-      // Pas de paramètre last : filtrage effectué côté Worker.
       endpoint =
         `/fixtures/headtohead?h2h=${encodeURIComponent(home)}-${encodeURIComponent(away)}`;
 
@@ -176,7 +327,6 @@ export default {
 
     try {
 
-      // Vérification du cache avant tout appel API.
       const cachedResponse = await cache.match(cacheKey);
 
       if (cachedResponse) {
@@ -189,13 +339,11 @@ export default {
         });
       }
 
-      // Appel API-Football.
       const data = await footballRequest(
         endpoint,
         env.API_FOOTBALL_KEY
       );
 
-      // Gestion des erreurs du fournisseur.
       if (
         data.errors &&
         Object.keys(data.errors).length > 0
@@ -205,7 +353,6 @@ export default {
         }, 200);
       }
 
-      // Filtrage des cinq derniers matchs terminés.
       const finalData = filterLastFive
         ? getLastFiveFinished(data)
         : data;
@@ -222,7 +369,6 @@ export default {
         }
       );
 
-      // Enregistrement des données dans le cache Cloudflare.
       await cache.put(cacheKey, response.clone());
 
       return response;
