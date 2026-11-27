@@ -106,13 +106,8 @@ const Matches = {
 
     const metadata = [];
 
-    if (leagueData.country) {
-      metadata.push(leagueData.country);
-    }
-
-    if (leagueData.season) {
-      metadata.push(`Saison ${leagueData.season}`);
-    }
+    if (leagueData.country) metadata.push(leagueData.country);
+    if (leagueData.season) metadata.push(`Saison ${leagueData.season}`);
 
     if (metadata.length > 0) {
       const info = document.createElement("small");
@@ -122,25 +117,25 @@ const Matches = {
     }
 
     league.appendChild(details);
-
     return league;
   },
 
-  
-const card = document.createElement("article");
-card.className = "dashboard-match-card";
+  createCard(match) {
+    const card = document.createElement("article");
+    card.className = "dashboard-match-card";
 
-card.dataset.fixtureId = match.fixture?.id || "";
-card.dataset.homeTeam = match.teams?.home?.name || "";
-card.dataset.awayTeam = match.teams?.away?.name || "";
-card.dataset.leagueId = match.league?.id || "";
+    card.dataset.fixtureId = match.fixture?.id || "";
+    card.dataset.homeTeam = match.teams?.home?.name || "";
+    card.dataset.awayTeam = match.teams?.away?.name || "";
+    card.dataset.leagueId = match.league?.id || "";
 
-card.setAttribute("role", "button");
-card.setAttribute("tabindex", "0");
-card.setAttribute(
-  "aria-label",
-  `Détails du match ${match.teams?.home?.name || ""} contre ${match.teams?.away?.name || ""}`
-);
+    card.setAttribute("role", "button");
+    card.setAttribute("tabindex", "0");
+    card.setAttribute(
+      "aria-label",
+      `Détails du match ${match.teams?.home?.name || ""} contre ${match.teams?.away?.name || ""}`
+    );
+
     const league = this.createLeagueHeader({
       name: match.league?.name,
       flag: match.league?.flag,
@@ -206,7 +201,6 @@ card.setAttribute(
 
     filters.addEventListener("click", (event) => {
       const button = event.target.closest("[data-match-filter]");
-
       if (!button) return;
 
       this.currentFilter = button.dataset.matchFilter;
@@ -236,7 +230,6 @@ card.setAttribute(
 
   populateLeagueFilter() {
     const select = document.getElementById("matches-league-select");
-
     if (!select) return;
 
     const leagues = new Map();
@@ -296,8 +289,7 @@ card.setAttribute(
       const status = this.getStatus(match.fixture?.status?.short).type;
 
       const statusMatches =
-        this.currentFilter === "all" ||
-        status === this.currentFilter;
+        this.currentFilter === "all" || status === this.currentFilter;
 
       const leagueMatches =
         this.currentLeague === "all" ||
