@@ -4,8 +4,9 @@
 ========================================== */
 
 const App = {
+
   init() {
-    console.log("SPORTPULSE AI — Initializing...");
+    console.log("SPORTPULSE AI — Initialisation");
 
     this.renderShell();
 
@@ -17,14 +18,14 @@ const App = {
       window.SPORTPULSE_ROUTER.init();
     }
 
-    console.log("SPORTPULSE AI — Ready");
+    console.log("SPORTPULSE AI — Application prête");
   },
 
   renderShell() {
     const app = document.getElementById("app");
 
     if (!app) {
-      console.error("SPORTPULSE: #app container missing.");
+      console.error("Conteneur #app introuvable");
       return;
     }
 
@@ -37,76 +38,76 @@ const App = {
 
           <header class="main-header">
             <div>
-              <div class="header-label">SPORTS INTELLIGENCE</div>
-              <strong id="current-page-title">Dashboard</strong>
+              <span class="header-eyebrow">SPORTPULSE AI</span>
+              <h1 id="current-page-title">Dashboard</h1>
             </div>
 
-            <div class="header-actions">
-              <span class="engine-status">
-                <span class="status-dot"></span>
-                Engine Ready
-              </span>
+            <div class="header-status">
+              <span class="status-dot"></span>
+              <span>Interface active</span>
             </div>
           </header>
 
-          <div class="main-content" id="page-content">
-            <section data-view="dashboard">
-              <div class="page-section">
-                <div class="section-heading">
-                  <div>
-                    <h1 class="section-title">Dashboard</h1>
-                    <p class="section-description">
-                      Welcome to SPORTPULSE AI.
-                    </p>
-                  </div>
-                  <span class="badge badge-accent">VERSION 0.1</span>
-                </div>
+          <div id="page-content">
 
-                <div class="card">
-                  <h2>Sports Intelligence Platform</h2>
-                  <p class="text-muted">
-                    Your sports analytics workspace is being prepared.
-                  </p>
-                </div>
-              </div>
+            <section data-view="dashboard">
+              ${
+                window.SPORTPULSE_DASHBOARD
+                  ? window.SPORTPULSE_DASHBOARD.render()
+                  : "<p>Dashboard en cours de chargement...</p>"
+              }
             </section>
 
             <section data-view="matches" hidden>
-              <h1 class="section-title">Live & Matchs</h1>
-              <p class="section-description">Upcoming fixtures and results.</p>
+              <div class="page-placeholder">
+                <h2>Live & Matchs</h2>
+                <p>Le calendrier et les résultats sportifs seront intégrés ici.</p>
+              </div>
             </section>
 
             <section data-view="analysis" hidden>
-              <h1 class="section-title">Analyses</h1>
-              <p class="section-description">Statistical match analysis.</p>
+              <div class="page-placeholder">
+                <h2>Analyses</h2>
+                <p>Les analyses statistiques des rencontres seront disponibles ici.</p>
+              </div>
             </section>
 
             <section data-view="odds" hidden>
-              <h1 class="section-title">Odds Center</h1>
-              <p class="section-description">Odds and market intelligence.</p>
+              <div class="page-placeholder">
+                <h2>Odds Center</h2>
+                <p>Comparaison des cotes et des bookmakers.</p>
+              </div>
             </section>
 
             <section data-view="scanner" hidden>
-              <h1 class="section-title">Scanner</h1>
-              <p class="section-description">Statistical opportunity scanner.</p>
+              <div class="page-placeholder">
+                <h2>Scanner</h2>
+                <p>Détection des écarts statistiques entre modèle et marché.</p>
+              </div>
             </section>
 
             <section data-view="players" hidden>
-              <h1 class="section-title">Players</h1>
-              <p class="section-description">Player statistics and form.</p>
+              <div class="page-placeholder">
+                <h2>Players</h2>
+                <p>Statistiques et données individuelles des joueurs.</p>
+              </div>
             </section>
 
             <section data-view="performance" hidden>
-              <h1 class="section-title">Performance Lab</h1>
-              <p class="section-description">Prediction performance tracking.</p>
+              <div class="page-placeholder">
+                <h2>Performance Lab</h2>
+                <p>Suivi des performances et évaluation des prédictions.</p>
+              </div>
             </section>
 
             <section data-view="ai-lab" hidden>
-              <h1 class="section-title">AI Lab</h1>
-              <p class="section-description">AI-powered sports insights.</p>
+              <div class="page-placeholder">
+                <h2>AI Lab</h2>
+                <p>Explications et interprétations des analyses sportives.</p>
+              </div>
             </section>
-          </div>
 
+          </div>
         </main>
 
         <div id="app-bottom-nav"></div>
@@ -114,28 +115,30 @@ const App = {
       </div>
     `;
 
-    const titles = {
-      dashboard: "Dashboard",
-      matches: "Live & Matchs",
-      analysis: "Analyses",
-      odds: "Odds Center",
-      scanner: "Scanner",
-      players: "Players",
-      performance: "Performance Lab",
-      "ai-lab": "AI Lab"
-    };
-
-    window.addEventListener("sportpulse:navigate", event => {
+    document.addEventListener("sportpulse:navigate", (event) => {
       const title = document.getElementById("current-page-title");
+
+      const titles = {
+        dashboard: "Dashboard",
+        matches: "Live & Matchs",
+        analysis: "Analyses",
+        odds: "Odds Center",
+        scanner: "Scanner",
+        players: "Players",
+        performance: "Performance Lab",
+        "ai-lab": "AI Lab"
+      };
+
       if (title) {
-        title.textContent = titles[event.detail.page] || "SPORTPULSE AI";
+        title.textContent =
+          titles[event.detail?.page] || "SPORTPULSE AI";
       }
     });
   }
 };
 
+window.SPORTPULSE_APP = App;
+
 document.addEventListener("DOMContentLoaded", () => {
   App.init();
 });
-
-window.SPORTPULSE_APP = App;
