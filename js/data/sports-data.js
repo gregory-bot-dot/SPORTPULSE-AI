@@ -53,7 +53,15 @@ const SportsData = {
   async getLeagues() {
     return this.request("/football/leagues");
   },
+async getMatchStatistics(fixtureId) {
+  if (!fixtureId) {
+    throw new Error("Identifiant du match manquant.");
+  }
 
+  return this.request(
+    `/football/statistics?fixture=${encodeURIComponent(fixtureId)}`
+  );
+},
   getStatus() {
     return {
       provider: this.provider.name,
