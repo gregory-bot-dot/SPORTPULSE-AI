@@ -126,10 +126,21 @@ const Matches = {
     return league;
   },
 
-  createCard(match) {
-    const card = document.createElement("article");
-    card.className = "dashboard-match-card";
+  
+const card = document.createElement("article");
+card.className = "dashboard-match-card";
 
+card.dataset.fixtureId = match.fixture?.id || "";
+card.dataset.homeTeam = match.teams?.home?.name || "";
+card.dataset.awayTeam = match.teams?.away?.name || "";
+card.dataset.leagueId = match.league?.id || "";
+
+card.setAttribute("role", "button");
+card.setAttribute("tabindex", "0");
+card.setAttribute(
+  "aria-label",
+  `Détails du match ${match.teams?.home?.name || ""} contre ${match.teams?.away?.name || ""}`
+);
     const league = this.createLeagueHeader({
       name: match.league?.name,
       flag: match.league?.flag,
