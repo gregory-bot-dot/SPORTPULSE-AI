@@ -336,3 +336,129 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* =====================================
+   SPORTPULSE — LIVE & MATCHES PAGE
+===================================== */
+
+.matches-page {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding-bottom: 30px;
+}
+
+.matches-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.matches-page-header h2 {
+  color: #F1F5F2;
+  font-size: 25px;
+  font-weight: 800;
+  margin: 7px 0;
+}
+
+.matches-page-header p,
+.matches-toolbar p {
+  color: #89959F;
+  font-size: 12px;
+}
+
+.matches-date {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: right;
+}
+
+.matches-date span,
+.matches-overview-card span {
+  color: #89959F;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .7px;
+}
+
+.matches-date strong {
+  color: #B6F34A;
+  font-size: 13px;
+  text-transform: capitalize;
+}
+
+.matches-overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.matches-overview-card {
+  background: #111922;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 13px;
+  padding: 15px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.matches-overview-card strong {
+  color: #F1F5F2;
+  font-size: 25px;
+  font-weight: 800;
+}
+
+.matches-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.matches-toolbar h3 {
+  color: #F1F5F2;
+  font-size: 16px;
+  margin-bottom: 5px;
+}
+
+.matches-toolbar .btn {
+  flex-shrink: 0;
+}
+
+.matches-list {
+  display: grid;
+  gap: 12px;
+}
+
+.matches-list .dashboard-match-card {
+  width: 100%;
+}
+
+.matches-disclaimer {
+  color: #89959F;
+  font-size: 11px;
+  line-height: 1.6;
+  padding: 12px;
+  border-left: 2px solid #B6F34A;
+  background: rgba(182,243,74,.04);
+  border-radius: 0 8px 8px 0;
+}
+
+@media (max-width: 480px) {
+  .matches-page-header h2 {
+    font-size: 22px;
+  }
+
+  .matches-overview-card {
+    padding: 12px 9px;
+  }
+
+  .matches-overview-card strong {
+    font-size: 22px;
+  }
+}
