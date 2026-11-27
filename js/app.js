@@ -684,6 +684,14 @@ const App = {
     window.scrollTo({ top: 0, behavior: "smooth" });
 
     this.loadMatchStatistics(fixture.id);
+
+if (home.id) {
+  this.loadTeamForm(home.id, home.name, fixture.id);
+}
+
+if (away.id) {
+  this.loadTeamForm(away.id, away.name, fixture.id);
+}
   },
 
   closeMatchDetail() {
