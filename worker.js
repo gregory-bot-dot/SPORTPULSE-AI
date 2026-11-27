@@ -1,7 +1,7 @@
 
 /* ==========================================
    SPORTPULSE AI — SECURE API WORKER
-   Cloudflare Workers
+   WITH CACHE SYSTEM
 ========================================== */
 
 const API_BASE = "https://v3.football.api-sports.io";
@@ -10,7 +10,7 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
-  "Content-Type": "application/json"
+  "Content-Type": "application/json; charset=utf-8"
 };
 
 function json(data, status = 200) {
@@ -34,11 +34,12 @@ async function footballRequest(endpoint, apiKey) {
     throw new Error(`API-Football HTTP ${response.status}`);
   }
 
-  return await response.json();
+  return response.json();
 }
 
 export default {
   async fetch(request, env) {
+
     if (request.method === "OPTIONS") {
       return new Response(null, {
         status: 204,
@@ -47,42 +48,59 @@ export default {
     }
 
     if (request.method !== "GET") {
-      return json({ error: "Méthode non autorisée" }, 405);
+      return json({ error: "Methode non autorisee" }, 405);
     }
 
     if (!env.API_FOOTBALL_KEY) {
       return json({
-        error: "Clé API non configurée sur le serveur"
+        error: "Cle API non configuree sur le serveur"
       }, 503);
     }
 
     const url = new URL(request.url);
     const path = url.pathname;
 
+    let endpoint;
+    let cacheDuration;
+
+    if (path === "/football/fixtures") {
+      const date = url.searchParams.get("date");
+
+      if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return json({ error: "Date invalide" }, 400);
+      }
+
+      endpoint = `/fixtures?date=${encodeURIComponent(date)}`;
+      cacheDuration = 300;
+
+    } else if (path === "/football/live") {
+      endpoint = "/fixtures?live=all";
+      cacheDuration = 60;
+
+    } else if (path === "/football/leagues") {
+      endpoint = "/leagues?current=true";
+      cacheDuration = 3600;
+
+    } else {
+      return json({ error: "Route inconnue" }, 404);
+    }
+
+    const cache = caches.default;
+    const cacheKey = new Request(url.toString(), {
+      method: "GET"
+    });
+
     try {
-      let endpoint;
+      const cachedResponse = await cache.match(cacheKey);
 
-      if (path === "/football/fixtures") {
-        const date = url.searchParams.get("date");
+      if (cachedResponse) {
+        const headers = new Headers(cachedResponse.headers);
+        headers.set("X-SPORTPULSE-CACHE", "HIT");
 
-        if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-          return json({
-            error: "Date invalide. Format attendu : YYYY-MM-DD"
-          }, 400);
-        }
-
-        endpoint = `/fixtures?date=${encodeURIComponent(date)}`;
-
-      } else if (path === "/football/live") {
-        endpoint = "/fixtures?live=all";
-
-      } else if (path === "/football/leagues") {
-        endpoint = "/leagues?current=true";
-
-      } else {
-        return json({
-          error: "Route inconnue"
-        }, 404);
+        return new Response(cachedResponse.body, {
+          status: cachedResponse.status,
+          headers
+        });
       }
 
       const data = await footballRequest(
@@ -90,13 +108,28 @@ export default {
         env.API_FOOTBALL_KEY
       );
 
-      return json(data);
+      if (data.errors && Object.keys(data.errors).length > 0) {
+        return json(data);
+      }
+
+      const response = new Response(JSON.stringify(data), {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          "Cache-Control": `public, max-age=${cacheDuration}`,
+          "X-SPORTPULSE-CACHE": "MISS"
+        }
+      });
+
+      await cache.put(cacheKey, response.clone());
+
+      return response;
 
     } catch (error) {
       console.error("SPORTPULSE WORKER:", error);
 
       return json({
-        error: "Impossible de récupérer les données sportives"
+        error: "Impossible de recuperer les donnees sportives"
       }, 502);
     }
   }
