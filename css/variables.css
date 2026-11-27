@@ -1,0 +1,51 @@
+
+:root {
+  /* Backgrounds */
+  --bg-main: #090D12;
+  --bg-card: #111922;
+  --bg-secondary: #18222D;
+  --bg-hover: #202D39;
+
+  /* Brand */
+  --accent: #B6F34A;
+  --accent-soft: rgba(182, 243, 74, 0.12);
+
+  /* Text */
+  --text-main: #F1F5F2;
+  --text-secondary: #89959F;
+  --text-muted: #64717D;
+
+  /* Status */
+  --success: #48D597;
+  --warning: #F4BC55;
+  --danger: #F16F72;
+  --info: #62B7F5;
+
+  /* Borders */
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  /* Layout */
+  --sidebar-width: 250px;
+  --header-height: 68px;
+  --content-max: 1440px;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+
+  /* Effects */
+  --shadow-card: 0 8px 30px rgba(0, 0, 0, 0.22);
+  --transition: 180ms ease;
+}
