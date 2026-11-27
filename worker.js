@@ -1,7 +1,8 @@
 
 /* ==========================================
    SPORTPULSE AI — SECURE API WORKER
-   CACHE + MATCH STATISTICS + TEAM FORM + H2H
+   FREE PLAN OPTIMIZED
+   CACHE + STATISTICS + TEAM FORM + H2H
 ========================================== */
 
 const API_BASE = "https://v3.football.api-sports.io";
@@ -13,12 +14,13 @@ const corsHeaders = {
   "Content-Type": "application/json; charset=utf-8"
 };
 
-function json(data, status = 200) {
+function json(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       ...corsHeaders,
-      "Cache-Control": "no-store"
+      "Cache-Control": "no-store",
+      ...extraHeaders
     }
   });
 }
@@ -35,6 +37,30 @@ async function footballRequest(endpoint, apiKey) {
   }
 
   return response.json();
+}
+
+// Ne conserver que les cinq derniers matchs terminés.
+function getLastFiveFinished(data) {
+  if (!Array.isArray(data.response)) {
+    return data;
+  }
+
+  const finishedStatuses = ["FT", "AET", "PEN"];
+
+  const matches = data.response
+    .filter(match =>
+      finishedStatuses.includes(match.fixture?.status?.short)
+    )
+    .sort((a, b) =>
+      new Date(b.fixture.date) - new Date(a.fixture.date)
+    )
+    .slice(0, 5);
+
+  return {
+    ...data,
+    results: matches.length,
+    response: matches
+  };
 }
 
 export default {
@@ -62,8 +88,10 @@ export default {
 
     let endpoint;
     let cacheDuration;
+    let filterLastFive = false;
 
     if (path === "/football/fixtures") {
+
       const date = url.searchParams.get("date");
 
       if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
@@ -74,14 +102,17 @@ export default {
       cacheDuration = 600;
 
     } else if (path === "/football/live") {
+
       endpoint = "/fixtures?live=all";
       cacheDuration = 60;
 
     } else if (path === "/football/leagues") {
+
       endpoint = "/leagues?current=true";
       cacheDuration = 86400;
 
     } else if (path === "/football/statistics") {
+
       const fixture = url.searchParams.get("fixture");
 
       if (!fixture || !/^\d+$/.test(fixture)) {
@@ -92,16 +123,24 @@ export default {
       cacheDuration = 1800;
 
     } else if (path === "/football/team-form") {
+
       const team = url.searchParams.get("team");
 
       if (!team || !/^\d+$/.test(team)) {
         return json({ error: "Identifiant de l'equipe invalide" }, 400);
       }
 
-      endpoint = `/fixtures?team=${encodeURIComponent(team)}&last=5`;
+      const season = new Date().getUTCFullYear();
+
+      // Pas de paramètre last : incompatible avec le forfait Free.
+      endpoint =
+        `/fixtures?team=${encodeURIComponent(team)}&season=${season}`;
+
       cacheDuration = 21600;
+      filterLastFive = true;
 
     } else if (path === "/football/head-to-head") {
+
       const home = url.searchParams.get("home");
       const away = url.searchParams.get("away");
 
@@ -117,12 +156,15 @@ export default {
         }, 400);
       }
 
+      // Pas de paramètre last : filtrage effectué côté Worker.
       endpoint =
-        `/fixtures/headtohead?h2h=${encodeURIComponent(home)}-${encodeURIComponent(away)}&last=5`;
+        `/fixtures/headtohead?h2h=${encodeURIComponent(home)}-${encodeURIComponent(away)}`;
 
       cacheDuration = 21600;
+      filterLastFive = true;
 
     } else {
+
       return json({ error: "Route inconnue" }, 404);
     }
 
@@ -133,6 +175,8 @@ export default {
     });
 
     try {
+
+      // Vérification du cache avant tout appel API.
       const cachedResponse = await cache.match(cacheKey);
 
       if (cachedResponse) {
@@ -145,33 +189,51 @@ export default {
         });
       }
 
+      // Appel API-Football.
       const data = await footballRequest(
         endpoint,
         env.API_FOOTBALL_KEY
       );
 
-      if (data.errors && Object.keys(data.errors).length > 0) {
-        return json(data);
+      // Gestion des erreurs du fournisseur.
+      if (
+        data.errors &&
+        Object.keys(data.errors).length > 0
+      ) {
+        return json({
+          errors: data.errors
+        }, 200);
       }
 
-      const response = new Response(JSON.stringify(data), {
-        status: 200,
-        headers: {
-          ...corsHeaders,
-          "Cache-Control": `public, max-age=${cacheDuration}`,
-          "X-SPORTPULSE-CACHE": "MISS"
-        }
-      });
+      // Filtrage des cinq derniers matchs terminés.
+      const finalData = filterLastFive
+        ? getLastFiveFinished(data)
+        : data;
 
+      const response = new Response(
+        JSON.stringify(finalData),
+        {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            "Cache-Control": `public, max-age=${cacheDuration}`,
+            "X-SPORTPULSE-CACHE": "MISS"
+          }
+        }
+      );
+
+      // Enregistrement des données dans le cache Cloudflare.
       await cache.put(cacheKey, response.clone());
 
       return response;
 
     } catch (error) {
+
       console.error("SPORTPULSE WORKER:", error);
 
       return json({
-        error: "Impossible de recuperer les donnees sportives"
+        error: "Impossible de recuperer les donnees sportives",
+        details: error.message
       }, 502);
     }
   }
