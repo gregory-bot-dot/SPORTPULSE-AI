@@ -360,7 +360,7 @@ async function testNinjasLeague(url, env) {
 
 /* ==========================================
    TEST API NINJAS — ÉQUIPE
-   /test/api-ninjas-team?team=Brest
+   /test/api-ninjas-team?team=Brest&league=ligue1
 ========================================== */
 
 async function testNinjasTeam(url, env) {
@@ -372,16 +372,28 @@ async function testNinjasTeam(url, env) {
 
   const team = url.searchParams.get("team");
 
+  const league = (
+    url.searchParams.get("league") || ""
+  ).toLowerCase();
+
   if (!team) {
     return json({
       error: "Nom de l'équipe manquant"
     }, 400);
   }
 
+  if (!ALLOWED_LEAGUES.includes(league)) {
+    return json({
+      error: "Championnat manquant ou invalide",
+      allowed: ALLOWED_LEAGUES
+    }, 400);
+  }
+
   const season = new Date().getUTCFullYear();
 
   const endpoint =
-    `/soccermatches?team=${encodeURIComponent(team)}` +
+    `/soccermatches?league=${encodeURIComponent(league)}` +
+    `&team=${encodeURIComponent(team)}` +
     `&season=${season}&offset=0`;
 
   const cache = caches.default;
@@ -406,7 +418,9 @@ async function testNinjasTeam(url, env) {
       .filter(match =>
         match.status === "final" &&
         match.home_score !== null &&
-        match.away_score !== null
+        match.home_score !== undefined &&
+        match.away_score !== null &&
+        match.away_score !== undefined
       )
       .sort((a, b) =>
         new Date(b.start_time || b.date) -
@@ -418,6 +432,7 @@ async function testNinjasTeam(url, env) {
       success: true,
       provider: "API Ninjas",
       requestedTeam: team,
+      league,
       season,
       returned: matches.length,
       finishedMatches: finished.length,
@@ -452,6 +467,7 @@ async function testNinjasTeam(url, env) {
       success: false,
       provider: "API Ninjas",
       requestedTeam: team,
+      league,
       error: error.message
     }, 502);
   }
@@ -748,6 +764,9 @@ export default {
 
       const team = url.searchParams.get("team");
       const teamName = url.searchParams.get("name");
+      const teamLeague = (
+        url.searchParams.get("league") || ""
+      ).toLowerCase();
 
       if (!team || !/^\d+$/.test(team)) {
         return json({
@@ -764,12 +783,18 @@ export default {
 
         /* API NINJAS EN PRIORITÉ */
 
-        if (teamName && env.API_NINJAS_KEY) {
+        if (
+          teamName &&
+          teamLeague &&
+          ALLOWED_LEAGUES.includes(teamLeague) &&
+          env.API_NINJAS_KEY
+        ) {
           try {
             const season = new Date().getUTCFullYear();
 
             const ninjasEndpoint =
-              `/soccermatches?team=${encodeURIComponent(teamName)}` +
+              `/soccermatches?league=${encodeURIComponent(teamLeague)}` +
+              `&team=${encodeURIComponent(teamName)}` +
               `&season=${season}&offset=0`;
 
             const matches = await ninjasRequest(
