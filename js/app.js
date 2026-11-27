@@ -18,6 +18,8 @@ const App = {
       window.SPORTPULSE_ROUTER.init();
     }
 
+    this.initPageEvents();
+
     console.log("SPORTPULSE AI — Application prête");
   },
 
@@ -59,10 +61,67 @@ const App = {
             </section>
 
             <section data-view="matches" hidden>
-              <div class="page-placeholder">
-                <h2>Live & Matchs</h2>
-                <p>Le calendrier et les résultats sportifs seront intégrés ici.</p>
+
+              <div class="matches-page">
+
+                <div class="matches-page-header">
+                  <div>
+                    <span class="header-eyebrow">SPORTS DATA CENTER</span>
+                    <h2>Live & Matchs</h2>
+                    <p>Calendrier et résultats sportifs</p>
+                  </div>
+
+                  <div class="matches-date">
+                    <span>DATE DU JOUR</span>
+                    <strong id="matches-current-date">--</strong>
+                  </div>
+                </div>
+
+                <div class="matches-overview">
+                  <div class="matches-overview-card">
+                    <span>RENCONTRES</span>
+                    <strong id="matches-total">--</strong>
+                  </div>
+
+                  <div class="matches-overview-card">
+                    <span>EN DIRECT</span>
+                    <strong id="matches-live">--</strong>
+                  </div>
+
+                  <div class="matches-overview-card">
+                    <span>TERMINÉS</span>
+                    <strong id="matches-finished">--</strong>
+                  </div>
+                </div>
+
+                <div class="matches-toolbar">
+                  <div>
+                    <h3>Calendrier sportif</h3>
+                    <p>Rencontres récupérées depuis API-Football</p>
+                  </div>
+
+                  <button
+                    class="btn btn-primary"
+                    type="button"
+                    onclick="window.SPORTPULSE_MATCHES.loadToday('matches-page-list')">
+                    ↻ Actualiser
+                  </button>
+                </div>
+
+                <div id="matches-page-list" class="matches-list">
+                  <div class="dashboard-empty">
+                    <strong>En attente des rencontres</strong>
+                    <p>Appuyez sur Actualiser pour récupérer les matchs du jour.</p>
+                  </div>
+                </div>
+
+                <p class="matches-disclaimer">
+                  Les données sont fournies par une source sportive externe.
+                  Leur disponibilité dépend des compétitions couvertes.
+                </p>
+
               </div>
+
             </section>
 
             <section data-view="analysis" hidden>
@@ -114,8 +173,11 @@ const App = {
 
       </div>
     `;
+  },
 
+  initPageEvents() {
     document.addEventListener("sportpulse:navigate", (event) => {
+      const page = event.detail?.page;
       const title = document.getElementById("current-page-title");
 
       const titles = {
@@ -130,10 +192,26 @@ const App = {
       };
 
       if (title) {
-        title.textContent =
-          titles[event.detail?.page] || "SPORTPULSE AI";
+        title.textContent = titles[page] || "SPORTPULSE AI";
+      }
+
+      if (page === "matches") {
+        this.updateMatchesDate();
       }
     });
+  },
+
+  updateMatchesDate() {
+    const dateElement = document.getElementById("matches-current-date");
+
+    if (dateElement) {
+      dateElement.textContent = new Date().toLocaleDateString("fr-FR", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      });
+    }
   }
 };
 
