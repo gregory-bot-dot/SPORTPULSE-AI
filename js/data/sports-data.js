@@ -1,13 +1,12 @@
-
 /* ==========================================
    SPORTPULSE AI — SPORTS DATA SERVICE
-   API-FOOTBALL CONNECTION
+   API-FOOTBALL + API NINJAS
 ========================================== */
 
 const SportsData = {
 
   provider: {
-    name: "API-Football",
+    name: "API-Football + API Ninjas",
     status: "connected"
   },
 
@@ -30,17 +29,13 @@ const SportsData = {
       );
 
       if (!response.ok) {
-        throw new Error(
-          `Erreur serveur : ${response.status}`
-        );
+        throw new Error(`Erreur serveur : ${response.status}`);
       }
 
       const data = await response.json();
 
       if (data.errors && Object.keys(data.errors).length > 0) {
-        throw new Error(
-          JSON.stringify(data.errors)
-        );
+        throw new Error(JSON.stringify(data.errors));
       }
 
       return data;
@@ -79,18 +74,25 @@ const SportsData = {
     );
   },
 
-  // FORME RÉCENTE D'UNE ÉQUIPE
-  async getTeamForm(teamId) {
+  // FORME RÉCENTE — API NINJAS EN PRIORITÉ
+  async getTeamForm(teamId, teamName, league) {
     if (!teamId) {
-      throw new Error("Identifiant de l'equipe manquant.");
+      throw new Error("Identifiant de l'équipe manquant.");
     }
 
+    const params = new URLSearchParams({
+      team: String(teamId)
+    });
+
+    if (teamName) params.set("name", teamName);
+    if (league) params.set("league", league);
+
     return this.request(
-      `/football/team-form?team=${encodeURIComponent(teamId)}`
+      `/football/team-form?${params.toString()}`
     );
   },
 
-  // CONFRONTATIONS DIRECTES H2H
+  // CONFRONTATIONS DIRECTES
   async getHeadToHead(homeId, awayId) {
     if (
       !homeId ||
@@ -98,7 +100,7 @@ const SportsData = {
       String(homeId) === String(awayId)
     ) {
       throw new Error(
-        "Identifiants des equipes invalides."
+        "Identifiants des équipes invalides."
       );
     }
 
