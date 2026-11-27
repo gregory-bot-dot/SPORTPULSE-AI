@@ -1,7 +1,7 @@
 
 /* ==========================================
    SPORTPULSE AI — SECURE API WORKER
-   WITH CACHE SYSTEM
+   CACHE + MATCH STATISTICS
 ========================================== */
 
 const API_BASE = "https://v3.football.api-sports.io";
@@ -80,6 +80,16 @@ export default {
     } else if (path === "/football/leagues") {
       endpoint = "/leagues?current=true";
       cacheDuration = 3600;
+
+    } else if (path === "/football/statistics") {
+      const fixture = url.searchParams.get("fixture");
+
+      if (!fixture || !/^\d+$/.test(fixture)) {
+        return json({ error: "Identifiant du match invalide" }, 400);
+      }
+
+      endpoint = `/fixtures/statistics?fixture=${encodeURIComponent(fixture)}`;
+      cacheDuration = 300;
 
     } else {
       return json({ error: "Route inconnue" }, 404);
