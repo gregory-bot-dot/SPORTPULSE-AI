@@ -1,4 +1,3 @@
-
 /* ==========================================
    SPORTPULSE AI — APPLICATION CORE
    MATCH DETAIL + REAL STATISTICS
@@ -267,46 +266,56 @@ const App = {
       });
     }
   },
-formatDiagnosticError(error) {
-  const raw = String(error?.message || error || "Erreur inconnue");
-  const lower = raw.toLowerCase();
 
-  if (
-    lower.includes("ratelimit") ||
-    lower.includes("rate limit") ||
-    lower.includes("too many requests") ||
-    lower.includes("429")
-  ) {
-    return "Limite de requêtes API atteinte. Attendez quelques instants avant de réessayer.";
-  }
+  // ==========================================
+  // DIAGNOSTIC DES ERREURS
+  // ==========================================
 
-  if (
-    lower.includes("timeout") ||
-    lower.includes("timed out") ||
-    lower.includes("abort")
-  ) {
-    return "La requête a expiré. Le serveur sportif met trop de temps à répondre.";
-  }
+  formatDiagnosticError(error) {
+    const raw = String(error?.message || error || "Erreur inconnue");
+    const lower = raw.toLowerCase();
 
-  if (lower.includes("403") || lower.includes("forbidden")) {
-    return "Accès API refusé (403). Vérifiez les droits ou le quota de votre abonnement.";
-  }
+    if (
+      lower.includes("ratelimit") ||
+      lower.includes("rate limit") ||
+      lower.includes("too many requests") ||
+      lower.includes("429")
+    ) {
+      return "Limite de requêtes API atteinte. Attendez quelques instants avant de réessayer.";
+    }
 
-  if (lower.includes("401") || lower.includes("unauthorized")) {
-    return "Authentification API refusée (401). Vérifiez la configuration côté serveur.";
-  }
+    if (
+      lower.includes("timeout") ||
+      lower.includes("timed out") ||
+      lower.includes("abort")
+    ) {
+      return "La requête a expiré. Le serveur sportif met trop de temps à répondre.";
+    }
 
-  if (
-    lower.includes("500") ||
-    lower.includes("502") ||
-    lower.includes("503") ||
-    lower.includes("server")
-  ) {
-    return "Le serveur sportif rencontre une erreur. Réessayez plus tard.";
-  }
+    if (lower.includes("403") || lower.includes("forbidden")) {
+      return "Accès API refusé (403). Vérifiez les droits ou le quota de votre abonnement.";
+    }
 
-  return raw.length > 180 ? raw.slice(0, 180) + "…" : raw;
-},
+    if (lower.includes("401") || lower.includes("unauthorized")) {
+      return "Authentification API refusée (401). Vérifiez la configuration côté serveur.";
+    }
+
+    if (
+      lower.includes("500") ||
+      lower.includes("502") ||
+      lower.includes("503") ||
+      lower.includes("server")
+    ) {
+      return "Le serveur sportif rencontre une erreur. Réessayez plus tard.";
+    }
+
+    return raw.length > 180 ? raw.slice(0, 180) + "…" : raw;
+  },
+
+  // ==========================================
+  // SÉCURITÉ HTML
+  // ==========================================
+
   escapeHTML(value) {
     return String(value ?? "").replace(/[&<>"']/g, (char) => ({
       "&": "&amp;",
@@ -337,6 +346,10 @@ formatDiagnosticError(error) {
 
     return Number.isFinite(number) ? number : null;
   },
+
+  // ==========================================
+  // STATISTIQUES DU MATCH
+  // ==========================================
 
   renderStatistics(data) {
     const container = document.getElementById("match-statistics-content");
@@ -597,6 +610,9 @@ formatDiagnosticError(error) {
       container.innerHTML = `
         <div class="dashboard-empty">
           Impossible de récupérer la forme récente.
+          <p class="dashboard-subtitle">
+            ${this.escapeHTML(this.formatDiagnosticError(error))}
+          </p>
         </div>
       `;
     }
@@ -753,6 +769,9 @@ formatDiagnosticError(error) {
       container.innerHTML = `
         <div class="dashboard-empty">
           Impossible de charger les confrontations directes.
+          <p class="dashboard-subtitle">
+            ${this.escapeHTML(this.formatDiagnosticError(error))}
+          </p>
         </div>
       `;
     }
