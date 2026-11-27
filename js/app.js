@@ -855,7 +855,10 @@ if (home.id) {
 if (away.id) {
   this.loadTeamForm(away.id, away.name, fixture.id);
 }
-  },
+
+if (home.id && away.id) {
+  this.loadHeadToHead(home.id, away.id);
+}
 
   closeMatchDetail() {
     const listView = document.getElementById("matches-list-view");
