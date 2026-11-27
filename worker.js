@@ -3,6 +3,7 @@
    SPORTPULSE AI — SECURE API WORKER
    API-FOOTBALL + API NINJAS
    FREE PLAN OPTIMIZED
+   CACHE + RATE LIMIT PROTECTION
 ========================================== */
 
 const API_BASE = "https://v3.football.api-sports.io";
@@ -102,8 +103,39 @@ async function getCached(cache, key) {
 }
 
 async function saveCache(cache, key, response) {
-  await cache.put(key, response.clone());
+  try {
+    await cache.put(key, response.clone());
+  } catch (error) {
+    console.error("CACHE SAVE ERROR:", error.message);
+  }
+
   return response;
+}
+
+/* ==========================================
+   RÉPONSE QUOTA API-FOOTBALL
+========================================== */
+
+async function rateLimitResponse(cache, cacheKey, details = {}) {
+  const response = new Response(
+    JSON.stringify({
+      success: false,
+      provider: "API-Football",
+      rateLimit: true,
+      message: "Limite API atteinte. Réessayez dans une minute.",
+      errors: details
+    }),
+    {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        "Cache-Control": "public, max-age=60",
+        "X-SPORTPULSE-CACHE": "RATE-LIMIT"
+      }
+    }
+  );
+
+  return saveCache(cache, cacheKey, response);
 }
 
 /* ==========================================
@@ -116,6 +148,12 @@ async function footballRequest(endpoint, apiKey) {
       "x-apisports-key": apiKey
     }
   });
+
+  if (response.status === 429) {
+    const error = new Error("API-Football HTTP 429");
+    error.rateLimit = true;
+    throw error;
+  }
 
   if (!response.ok) {
     throw new Error(
@@ -697,7 +735,7 @@ export default {
     }
 
     /* ======================================
-       ROUTES API FOOTBALL
+       API FOOTBALL
     ====================================== */
 
     if (!env.API_FOOTBALL_KEY) {
@@ -856,11 +894,24 @@ export default {
           fallbackData.errors &&
           Object.keys(fallbackData.errors).length > 0
         ) {
-          return json({
-            error: "Impossible de récupérer la forme récente",
-            provider: "API-Football",
-            details: fallbackData.errors
-          }, 502);
+          const errorResponse = new Response(
+            JSON.stringify({
+              error: "Impossible de récupérer la forme récente",
+              provider: "API-Football",
+              errors: fallbackData.errors,
+              rateLimit: true
+            }),
+            {
+              status: 200,
+              headers: {
+                ...corsHeaders,
+                "Cache-Control": "public, max-age=60",
+                "X-SPORTPULSE-CACHE": "RATE-LIMIT"
+              }
+            }
+          );
+
+          return saveCache(cache, cacheKey, errorResponse);
         }
 
         const finalData = getLastFiveFinished(fallbackData);
@@ -884,6 +935,14 @@ export default {
 
       } catch (error) {
         console.error("TEAM FORM ERROR:", error);
+
+        if (error.rateLimit) {
+          return rateLimitResponse(
+            cache,
+            cacheKey,
+            { rateLimit: "Too many requests" }
+          );
+        }
 
         return json({
           error: "Impossible de récupérer la forme récente",
@@ -943,9 +1002,11 @@ export default {
         data.errors &&
         Object.keys(data.errors).length > 0
       ) {
-        return json({
-          errors: data.errors
-        }, 200);
+        return rateLimitResponse(
+          cache,
+          cacheKey,
+          data.errors
+        );
       }
 
       const finalData = filterLastFive
@@ -968,6 +1029,14 @@ export default {
 
     } catch (error) {
       console.error("SPORTPULSE WORKER:", error);
+
+      if (error.rateLimit) {
+        return rateLimitResponse(
+          cache,
+          cacheKey,
+          { rateLimit: "Too many requests" }
+        );
+      }
 
       return json({
         error: "Impossible de récupérer les données sportives",
