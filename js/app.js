@@ -700,46 +700,7 @@ const App = {
       `;
     }
   },
-    const container = document.getElementById(`team-form-${teamId}`);
 
-    if (!container) return;
-
-    container.innerHTML = `
-      <div class="dashboard-empty">
-        Chargement des cinq derniers matchs...
-      </div>
-    `;
-
-    try {
-      const data = await window.SPORTPULSE_DATA.getTeamForm(teamId);
-
-      if (data.errors && Object.keys(data.errors).length > 0) {
-        throw new Error(JSON.stringify(data.errors));
-      }
-
-      if (
-        String(this.selectedMatch?.fixture?.id) !== String(fixtureId)
-      ) return;
-
-      this.renderTeamForm(data, teamId, teamName);
-
-    } catch (error) {
-      console.error("SPORTPULSE TEAM FORM:", error);
-
-      if (
-        String(this.selectedMatch?.fixture?.id) !== String(fixtureId)
-      ) return;
-
-      container.innerHTML = `
-        <div class="dashboard-empty">
-          Impossible de récupérer la forme récente.
-          <p class="dashboard-subtitle">
-            ${this.escapeHTML(this.formatDiagnosticError(error))}
-          </p>
-        </div>
-      `;
-    }
-  },
 
   // ==========================================
   // HEAD TO HEAD — AFFICHAGE
