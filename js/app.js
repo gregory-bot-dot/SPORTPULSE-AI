@@ -108,6 +108,13 @@ const App = {
                   </button>
                 </div>
 
+<div class="matches-league-filter">
+  <label for="matches-league-select">CHAMPIONNAT</label>
+  <select id="matches-league-select">
+    <option value="all">Tous les championnats</option>
+  </select>
+</div>
+
 <div class="matches-filters">
   <button class="match-filter active" data-match-filter="all">
     Tous
