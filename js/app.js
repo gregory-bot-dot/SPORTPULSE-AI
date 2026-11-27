@@ -619,6 +619,29 @@ const App = {
         </div>
 
         <div class="match-detail-section">
+          <h3>Forme récente</h3>
+          <p>Les cinq dernières rencontres de chaque équipe</p>
+
+          <div class="team-form-container">
+            <h4>${this.escapeHTML(home.name || "Équipe domicile")}</h4>
+            <div id="team-form-${home.id}">
+              <div class="dashboard-empty">
+                Chargement...
+              </div>
+            </div>
+          </div>
+
+          <div class="team-form-container">
+            <h4>${this.escapeHTML(away.name || "Équipe extérieure")}</h4>
+            <div id="team-form-${away.id}">
+              <div class="dashboard-empty">
+                Chargement...
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="match-detail-section">
           <h3>Centre d'analyse</h3>
           <p>
             Les données statistiques serviront de base aux prochaines analyses
