@@ -1,7 +1,7 @@
 
 /* ==========================================
    SPORTPULSE AI — MATCHES ENGINE
-   STATUS + LEAGUE FILTERS
+   STATUS + LEAGUE FILTERS + LEAGUE DETAILS
 ========================================== */
 
 const Matches = {
@@ -77,25 +77,65 @@ const Matches = {
     return team;
   },
 
+  createLeagueHeader(leagueData) {
+    const league = document.createElement("div");
+    league.className = "match-league";
+
+    if (leagueData.flag) {
+      const flag = document.createElement("img");
+      flag.src = leagueData.flag;
+      flag.alt = "";
+      flag.className = "match-country-flag";
+      flag.loading = "lazy";
+
+      flag.onerror = () => {
+        flag.style.display = "none";
+      };
+
+      league.appendChild(flag);
+    }
+
+    const details = document.createElement("div");
+    details.className = "match-league-details";
+
+    const name = document.createElement("span");
+    name.className = "match-league-name";
+    name.textContent = leagueData.name || "Compétition";
+
+    details.appendChild(name);
+
+    const metadata = [];
+
+    if (leagueData.country) {
+      metadata.push(leagueData.country);
+    }
+
+    if (leagueData.season) {
+      metadata.push(`Saison ${leagueData.season}`);
+    }
+
+    if (metadata.length > 0) {
+      const info = document.createElement("small");
+      info.className = "match-league-info";
+      info.textContent = metadata.join(" • ");
+      details.appendChild(info);
+    }
+
+    league.appendChild(details);
+
+    return league;
+  },
+
   createCard(match) {
     const card = document.createElement("article");
     card.className = "dashboard-match-card";
 
-    const league = document.createElement("div");
-    league.className = "match-league";
-
-    if (match.league?.flag) {
-      const flag = document.createElement("img");
-      flag.src = match.league.flag;
-      flag.alt = "";
-      flag.className = "match-country-flag";
-      flag.loading = "lazy";
-      league.appendChild(flag);
-    }
-
-    const leagueName = document.createElement("span");
-    leagueName.textContent = match.league?.name || "Compétition";
-    league.appendChild(leagueName);
+    const league = this.createLeagueHeader({
+      name: match.league?.name,
+      flag: match.league?.flag,
+      country: match.league?.country,
+      season: match.league?.season
+    });
 
     const statusInfo = this.getStatus(match.fixture?.status?.short);
 
@@ -260,7 +300,6 @@ const Matches = {
     if (filtered.length === 0) {
       const empty = document.createElement("div");
       empty.className = "dashboard-empty";
-
       empty.textContent = "Aucune rencontre ne correspond à ces filtres.";
       container.appendChild(empty);
       return;
