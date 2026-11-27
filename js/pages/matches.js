@@ -1,12 +1,15 @@
 
 /* ==========================================
    SPORTPULSE AI — MATCHES ENGINE
+   STATUS + LEAGUE FILTERS
 ========================================== */
 
 const Matches = {
   currentFixtures: [],
   currentFilter: "all",
+  currentLeague: "all",
   filtersInitialized: false,
+  leagueFilterInitialized: false,
 
   getToday() {
     const date = new Date();
@@ -167,6 +170,55 @@ const Matches = {
     this.filtersInitialized = true;
   },
 
+  initLeagueFilter() {
+    const select = document.getElementById("matches-league-select");
+
+    if (!select || this.leagueFilterInitialized) return;
+
+    select.addEventListener("change", () => {
+      this.currentLeague = select.value;
+      this.renderFilteredMatches();
+    });
+
+    this.leagueFilterInitialized = true;
+  },
+
+  populateLeagueFilter() {
+    const select = document.getElementById("matches-league-select");
+
+    if (!select) return;
+
+    const leagues = new Map();
+
+    this.currentFixtures.forEach((match) => {
+      const id = match.league?.id;
+      const name = match.league?.name;
+
+      if (id !== undefined && name) {
+        leagues.set(String(id), name);
+      }
+    });
+
+    select.replaceChildren();
+
+    const allOption = document.createElement("option");
+    allOption.value = "all";
+    allOption.textContent = "Tous les championnats";
+    select.appendChild(allOption);
+
+    [...leagues.entries()]
+      .sort((a, b) => a[1].localeCompare(b[1], "fr"))
+      .forEach(([id, name]) => {
+        const option = document.createElement("option");
+        option.value = id;
+        option.textContent = name;
+        select.appendChild(option);
+      });
+
+    this.currentLeague = "all";
+    select.value = "all";
+  },
+
   updateCounters() {
     const total = document.getElementById("matches-total");
     const live = document.getElementById("matches-live");
@@ -192,8 +244,15 @@ const Matches = {
     const filtered = this.currentFixtures.filter((match) => {
       const status = this.getStatus(match.fixture?.status?.short).type;
 
-      return this.currentFilter === "all" ||
+      const statusMatches =
+        this.currentFilter === "all" ||
         status === this.currentFilter;
+
+      const leagueMatches =
+        this.currentLeague === "all" ||
+        String(match.league?.id) === this.currentLeague;
+
+      return statusMatches && leagueMatches;
     });
 
     container.replaceChildren();
@@ -202,14 +261,7 @@ const Matches = {
       const empty = document.createElement("div");
       empty.className = "dashboard-empty";
 
-      const message = {
-        all: "Aucune rencontre disponible aujourd'hui.",
-        live: "Aucun match en direct actuellement.",
-        upcoming: "Aucun match à venir.",
-        finished: "Aucun match terminé."
-      };
-
-      empty.textContent = message[this.currentFilter] || "Aucun match disponible.";
+      empty.textContent = "Aucune rencontre ne correspond à ces filtres.";
       container.appendChild(empty);
       return;
     }
@@ -237,8 +289,11 @@ const Matches = {
       if (containerId === "matches-page-list") {
         this.currentFixtures = fixtures;
         this.currentFilter = "all";
+        this.currentLeague = "all";
 
         this.initFilters();
+        this.initLeagueFilter();
+        this.populateLeagueFilter();
         this.updateCounters();
 
         const filters = document.querySelector(".matches-filters");
