@@ -395,14 +395,14 @@ const App = {
         throw new Error(JSON.stringify(data.errors));
       }
 
-      if (this.selectedMatch?.fixture?.id !== fixtureId) return;
+      if (String(this.selectedMatch?.fixture?.id) !== String(fixtureId)) return;
 
       this.renderStatistics(data);
 
     } catch (error) {
       console.error("SPORTPULSE STATISTICS:", error);
 
-      if (this.selectedMatch?.fixture?.id !== fixtureId) return;
+      if (String(this.selectedMatch?.fixture?.id) !== String(fixtureId)) return;
 
       container.innerHTML = `
         <div class="dashboard-empty">
@@ -413,22 +413,39 @@ const App = {
     }
   },
 
+  // ==========================================
+  // FORME RÉCENTE — AFFICHAGE
+  // ==========================================
+
   renderTeamForm(data, teamId, teamName) {
-    const matches = data?.response || [];
-
-    const containerId = `team-form-${teamId}`;
-    const container = document.getElementById(containerId);
-
+    const container = document.getElementById(`team-form-${teamId}`);
     if (!container) return;
 
-    const finishedMatches = matches.filter((match) => {
-      return match.goals?.home !== null &&
-        match.goals?.home !== undefined &&
-        match.goals?.away !== null &&
-        match.goals?.away !== undefined;
-    });
+    const matches = Array.isArray(data?.response)
+      ? data.response
+      : [];
+
+    const finishedMatches = matches
+      .filter((match) => {
+        const homeGoals = match.goals?.home;
+        const awayGoals = match.goals?.away;
+
+        return (
+          ["FT", "AET", "PEN"].includes(match.fixture?.status?.short)
+        ) &&
+        homeGoals !== null &&
+        homeGoals !== undefined &&
+        awayGoals !== null &&
+        awayGoals !== undefined;
+      })
+      .sort((a, b) => {
+        return new Date(b.fixture.date) - new Date(a.fixture.date);
+      })
+      .slice(0, 5);
 
     if (finishedMatches.length === 0) {
+      console.warn("SPORTPULSE : aucun match terminé pour", teamName, data);
+
       container.innerHTML = `
         <div class="dashboard-empty">
           Aucun résultat récent disponible.
@@ -503,6 +520,10 @@ const App = {
     `;
   },
 
+  // ==========================================
+  // FORME RÉCENTE — CHARGEMENT
+  // ==========================================
+
   async loadTeamForm(teamId, teamName, fixtureId) {
     const container = document.getElementById(`team-form-${teamId}`);
 
@@ -543,7 +564,7 @@ const App = {
   },
 
   // ==========================================
-  // HEAD TO HEAD — AFFICHAGE DES CONFRONTATIONS
+  // HEAD TO HEAD — AFFICHAGE
   // ==========================================
 
   renderHeadToHead(data, homeId, awayId) {
@@ -577,8 +598,12 @@ const App = {
       const homeGoals = goals.home;
       const awayGoals = goals.away;
 
-      if (homeGoals === null || awayGoals === null ||
-          homeGoals === undefined || awayGoals === undefined) {
+      if (
+        homeGoals === null ||
+        awayGoals === null ||
+        homeGoals === undefined ||
+        awayGoals === undefined
+      ) {
         return "";
       }
 
@@ -661,7 +686,7 @@ const App = {
   },
 
   // ==========================================
-  // HEAD TO HEAD — CHARGEMENT API
+  // HEAD TO HEAD — CHARGEMENT
   // ==========================================
 
   async loadHeadToHead(homeId, awayId) {
@@ -676,7 +701,7 @@ const App = {
     `;
 
     try {
-      const data = await SportsData.getHeadToHead(
+      const data = await window.SPORTPULSE_DATA.getHeadToHead(
         homeId,
         awayId
       );
@@ -694,6 +719,10 @@ const App = {
     }
   },
 
+  // ==========================================
+  // FICHE DÉTAILLÉE DU MATCH
+  // ==========================================
+
   openMatchDetail(match) {
     this.selectedMatch = match;
 
@@ -707,6 +736,7 @@ const App = {
     const away = match.teams?.away || {};
     const league = match.league || {};
     const fixture = match.fixture || {};
+
     const status = window.SPORTPULSE_MATCHES.getStatus(
       fixture.status?.short
     );
@@ -793,16 +823,16 @@ const App = {
           </div>
         </div>
 
-<div class="match-detail-section">
-  <h3>Confrontations directes</h3>
-  <p>Historique des cinq dernières rencontres entre les deux équipes</p>
+        <div class="match-detail-section">
+          <h3>Confrontations directes</h3>
+          <p>Historique des cinq dernières rencontres entre les deux équipes</p>
 
-  <div id="match-h2h-content">
-    <div class="dashboard-empty">
-      Chargement des confrontations directes...
-    </div>
-  </div>
-</div>
+          <div id="match-h2h-content">
+            <div class="dashboard-empty">
+              Chargement des confrontations directes...
+            </div>
+          </div>
+        </div>
 
         <div class="match-detail-section">
           <h3>Centre d'analyse</h3>
@@ -848,18 +878,17 @@ const App = {
 
     this.loadMatchStatistics(fixture.id);
 
-if (home.id) {
-  this.loadTeamForm(home.id, home.name, fixture.id);
-}
+    if (home.id) {
+      this.loadTeamForm(home.id, home.name, fixture.id);
+    }
 
-if (away.id) {
-  this.loadTeamForm(away.id, away.name, fixture.id);
-}
+    if (away.id) {
+      this.loadTeamForm(away.id, away.name, fixture.id);
+    }
 
-if (home.id && away.id) {
-  this.loadHeadToHead(home.id, away.id);
-}
-
+    if (home.id && away.id) {
+      this.loadHeadToHead(home.id, away.id);
+    }
   },
 
   closeMatchDetail() {
