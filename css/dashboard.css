@@ -561,3 +561,42 @@
     max-width: 400px;
   }
 }
+
+/* ==========================================
+   SPORTPULSE — LEAGUE DETAILS
+========================================== */
+
+.match-league {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.match-country-flag {
+  width: 20px;
+  height: 14px;
+  object-fit: cover;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.match-league-details {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.match-league-name {
+  color: #F1F5F2;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.match-league-info {
+  color: #89959F;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .2px;
+}
