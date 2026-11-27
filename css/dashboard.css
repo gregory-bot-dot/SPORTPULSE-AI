@@ -462,3 +462,49 @@
     font-size: 22px;
   }
 }
+
+/* =====================================
+   SPORTPULSE — MATCH FILTERS
+===================================== */
+
+.matches-filters {
+  display: flex;
+  gap: 9px;
+  overflow-x: auto;
+  padding: 3px 0 10px;
+  scrollbar-width: none;
+}
+
+.matches-filters::-webkit-scrollbar {
+  display: none;
+}
+
+.match-filter {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  border-radius: 30px;
+  border: 1px solid rgba(255,255,255,.09);
+  background: #111922;
+  color: #89959F;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+
+.match-filter.active {
+  background: #B6F34A;
+  color: #090D12;
+  border-color: #B6F34A;
+}
+
+.match-filter:active {
+  transform: scale(.96);
+}
+
+@media (min-width: 700px) {
+  .matches-filters {
+    flex-wrap: wrap;
+  }
+}
