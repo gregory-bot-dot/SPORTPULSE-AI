@@ -1,7 +1,7 @@
 
 /* ==========================================
    SPORTPULSE AI — SECURE API WORKER
-   CACHE + MATCH STATISTICS
+   CACHE + MATCH STATISTICS + TEAM FORM
 ========================================== */
 
 const API_BASE = "https://v3.football.api-sports.io";
@@ -91,11 +91,22 @@ export default {
       endpoint = `/fixtures/statistics?fixture=${encodeURIComponent(fixture)}`;
       cacheDuration = 300;
 
+    } else if (path === "/football/team-form") {
+      const team = url.searchParams.get("team");
+
+      if (!team || !/^\d+$/.test(team)) {
+        return json({ error: "Identifiant de l'equipe invalide" }, 400);
+      }
+
+      endpoint = `/fixtures?team=${encodeURIComponent(team)}&last=5`;
+      cacheDuration = 300;
+
     } else {
       return json({ error: "Route inconnue" }, 404);
     }
 
     const cache = caches.default;
+
     const cacheKey = new Request(url.toString(), {
       method: "GET"
     });
