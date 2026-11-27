@@ -860,6 +860,8 @@ if (home.id && away.id) {
   this.loadHeadToHead(home.id, away.id);
 }
 
+  },
+
   closeMatchDetail() {
     const listView = document.getElementById("matches-list-view");
     const detailView = document.getElementById("match-detail-view");
