@@ -793,6 +793,17 @@ const App = {
           </div>
         </div>
 
+<div class="match-detail-section">
+  <h3>Confrontations directes</h3>
+  <p>Historique des cinq dernières rencontres entre les deux équipes</p>
+
+  <div id="match-h2h-content">
+    <div class="dashboard-empty">
+      Chargement des confrontations directes...
+    </div>
+  </div>
+</div>
+
         <div class="match-detail-section">
           <h3>Centre d'analyse</h3>
           <p>
