@@ -1,7 +1,7 @@
 
 /* ==========================================
    SPORTPULSE AI — SECURE API WORKER
-   CACHE + MATCH STATISTICS + TEAM FORM
+   CACHE + MATCH STATISTICS + TEAM FORM + H2H
 ========================================== */
 
 const API_BASE = "https://v3.football.api-sports.io";
@@ -99,6 +99,27 @@ export default {
       }
 
       endpoint = `/fixtures?team=${encodeURIComponent(team)}&last=5`;
+      cacheDuration = 300;
+
+    } else if (path === "/football/head-to-head") {
+      const home = url.searchParams.get("home");
+      const away = url.searchParams.get("away");
+
+      if (
+        !home ||
+        !away ||
+        !/^\d+$/.test(home) ||
+        !/^\d+$/.test(away) ||
+        home === away
+      ) {
+        return json({
+          error: "Identifiants des equipes invalides"
+        }, 400);
+      }
+
+      endpoint =
+        `/fixtures/headtohead?h2h=${encodeURIComponent(home)}-${encodeURIComponent(away)}&last=5`;
+
       cacheDuration = 300;
 
     } else {
