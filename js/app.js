@@ -108,6 +108,21 @@ const App = {
                   </button>
                 </div>
 
+<div class="matches-filters">
+  <button class="match-filter active" data-match-filter="all">
+    Tous
+  </button>
+  <button class="match-filter" data-match-filter="live">
+    🔴 En direct
+  </button>
+  <button class="match-filter" data-match-filter="upcoming">
+    À venir
+  </button>
+  <button class="match-filter" data-match-filter="finished">
+    Terminés
+  </button>
+</div>
+
                 <div id="matches-page-list" class="matches-list">
                   <div class="dashboard-empty">
                     <strong>En attente des rencontres</strong>
