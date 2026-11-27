@@ -1,0 +1,103 @@
+
+/* ==========================================
+   SPORTPULSE AI — RESPONSIVE SYSTEM
+========================================== */
+
+@media (max-width: 1200px) {
+  :root {
+    --sidebar-width: 220px;
+  }
+}
+
+/* TABLET */
+
+@media (max-width: 900px) {
+  .app-layout {
+    grid-template-columns: 200px minmax(0, 1fr);
+  }
+
+  .sidebar {
+    width: 200px;
+  }
+
+  .main-content {
+    padding: 20px;
+  }
+}
+
+/* MOBILE */
+
+@media (max-width: 768px) {
+  .app-layout {
+    display: block;
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    display: none !important;
+  }
+
+  .main-area {
+    width: 100%;
+  }
+
+  .main-header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    padding: 0 16px;
+  }
+
+  .main-content {
+    width: 100%;
+    padding: 16px 14px 100px;
+  }
+
+  .page-section {
+    gap: 18px;
+  }
+
+  .section-heading {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr;
+  }
+
+  .hide-mobile {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: flex !important;
+  }
+
+  /* Bottom navigation safe area */
+  .bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom);
+    background: rgba(17, 25, 34, 0.96);
+    border-top: 1px solid var(--border);
+    backdrop-filter: blur(16px);
+  }
+}
+
+/* DESKTOP */
+
+@media (min-width: 769px) {
+  .mobile-only {
+    display: none !important;
+  }
+
+  .bottom-nav {
+    display: none !important;
+  }
+}
