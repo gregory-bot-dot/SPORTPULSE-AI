@@ -576,7 +576,130 @@ const App = {
   // FORME RÉCENTE — CHARGEMENT
   // ==========================================
 
-  async loadTeamForm(teamId, teamName, fixtureId) {
+    getNinjasLeagueSlug(league) {
+    const normalize = (value) => String(value || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9 ]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const name = normalize(league?.name);
+
+    const aliases = {
+      "ligue 1": "ligue1",
+      "ligue 2": "ligue2",
+      "premier league": "epl",
+      "championship": "championship",
+      "league one": "leagueone",
+      "league two": "leaguetwo",
+      "la liga": "laliga",
+      "laliga": "laliga",
+      "segunda division": "laliga2",
+      "laliga 2": "laliga2",
+      "bundesliga": "bundesliga",
+      "2 bundesliga": "bundesliga2",
+      "serie a": "seriea",
+      "serie b": "serieb",
+      "uefa champions league": "ucl",
+      "champions league": "ucl",
+      "uefa europa league": "uel",
+      "europa league": "uel",
+      "uefa conference league": "uecl",
+      "conference league": "uecl",
+      "eredivisie": "eredivisie",
+      "primeira liga": "primeiraliga",
+      "liga portugal": "primeiraliga",
+      "super lig": "superlig",
+      "jupiler pro league": "belgianproleague",
+      "belgian pro league": "belgianproleague",
+      "greek super league": "greeksuperleague",
+      "austrian bundesliga": "austrianbundesliga",
+      "danish superliga": "danishsuperliga",
+      "allsvenskan": "allsvenskan",
+      "eliteserien": "eliteserien",
+      "russian premier league": "rpl",
+      "brasileirao": "brasileirao",
+      "copa libertadores": "libertadores",
+      "copa sudamericana": "sudamericana",
+      "saudi pro league": "saudiproleague",
+      "chinese super league": "csl",
+      "indian super league": "isl",
+      "a league": "aleague",
+      "j1 league": "j1league",
+      "liga mx": "ligamx",
+      "liga profesional": "ligaprofesional",
+      "fa cup": "facup",
+      "efl cup": "eflcup",
+      "copa del rey": "copadelrey",
+      "dfb pokal": "dfbpokal",
+      "coppa italia": "coppaitalia",
+      "coupe de france": "coupedefrance",
+      "us open cup": "usopencup",
+      "leagues cup": "leaguescup",
+      "concacaf champions cup": "concacafcc",
+      "fifa club world cup": "clubworldcup",
+      "world cup": "worldcup",
+      "uefa nations league": "nationsleague",
+      "european championship": "euro",
+      "copa america": "copaamerica",
+      "africa cup of nations": "afcon",
+      "asian cup": "asiancup",
+      "gold cup": "goldcup",
+      "international friendlies": "friendlies"
+    };
+
+    return aliases[name] || "";
+  },
+
+  async loadTeamForm(teamId, teamName, fixtureId, league) {
+    const container = document.getElementById(`team-form-${teamId}`);
+
+    if (!container) return;
+
+    container.innerHTML = `
+      <div class="dashboard-empty">
+        Chargement des cinq derniers matchs...
+      </div>
+    `;
+
+    try {
+      const leagueSlug = this.getNinjasLeagueSlug(league);
+
+      const data = await window.SPORTPULSE_DATA.getTeamForm(
+        teamId,
+        teamName,
+        leagueSlug
+      );
+
+      if (data.errors && Object.keys(data.errors).length > 0) {
+        throw new Error(JSON.stringify(data.errors));
+      }
+
+      if (
+        String(this.selectedMatch?.fixture?.id) !== String(fixtureId)
+      ) return;
+
+      this.renderTeamForm(data, teamId, teamName);
+
+    } catch (error) {
+      console.error("SPORTPULSE TEAM FORM:", error);
+
+      if (
+        String(this.selectedMatch?.fixture?.id) !== String(fixtureId)
+      ) return;
+
+      container.innerHTML = `
+        <div class="dashboard-empty">
+          Impossible de récupérer la forme récente.
+          <p class="dashboard-subtitle">
+            ${this.escapeHTML(this.formatDiagnosticError(error))}
+          </p>
+        </div>
+      `;
+    }
+  },
     const container = document.getElementById(`team-form-${teamId}`);
 
     if (!container) return;
