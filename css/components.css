@@ -1,0 +1,274 @@
+
+/* ==========================================
+   SPORTPULSE AI — UI COMPONENTS
+========================================== */
+
+/* BUTTONS */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #090D12;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: var(--bg-secondary);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-hover);
+}
+
+/* STAT CARDS */
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.stat-footer {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* BADGES */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.badge-success {
+  color: var(--success);
+  background: rgba(72, 213, 151, 0.12);
+}
+
+.badge-warning {
+  color: var(--warning);
+  background: rgba(244, 188, 85, 0.12);
+}
+
+.badge-danger {
+  color: var(--danger);
+  background: rgba(241, 111, 114, 0.12);
+}
+
+.badge-neutral {
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+}
+
+.badge-accent {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* MATCH CARDS */
+
+.match-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  transition: var(--transition);
+}
+
+.match-card:hover {
+  border-color: rgba(182, 243, 74, 0.3);
+  transform: translateY(-2px);
+}
+
+.match-teams {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.match-team {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.match-score {
+  font-size: 20px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.match-meta {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* PROBABILITY BARS */
+
+.probability-bar {
+  display: flex;
+  height: 8px;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 99px;
+  background: var(--bg-secondary);
+}
+
+.probability-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 99px;
+  transition: width 400ms ease;
+}
+
+.probability-value {
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* SIGNALS */
+
+.signal-card {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  background: var(--bg-card);
+  padding: 16px;
+  border-radius: var(--radius-md);
+}
+
+.signal-strong {
+  border-left-color: var(--success);
+}
+
+.signal-watch {
+  border-left-color: var(--warning);
+}
+
+.signal-neutral {
+  border-left-color: var(--text-muted);
+}
+
+/* FILTERS */
+
+.filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-chip {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.filter-chip.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: rgba(182, 243, 74, 0.25);
+}
+
+/* DIVIDERS */
+
+.divider {
+  width: 100%;
+  height: 1px;
+  background: var(--border);
+}
+
+/* EMPTY STATES */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+  gap: 10px;
+}
+
+/* ANIMATIONS */
+
+@keyframes pulse-green {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(182, 243, 74, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(182, 243, 74, 0.08);
+  }
+}
+
+.live-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  animation: pulse-green 2s infinite;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 768px) {
+  .stat-card {
+    padding: 16px;
+  }
+
+  .stat-value {
+    font-size: 24px;
+  }
+
+  .match-card {
+    padding: 14px;
+  }
+
+  .btn {
+    min-height: 42px;
+  }
+}
