@@ -45,6 +45,53 @@ const ALLOWED_LEAGUES = [
 ];
 
 /* ==========================================
+   COMPÉTITIONS DU SECOURS API NINJAS
+========================================== */
+
+const NINJAS_FIXTURE_LEAGUES = [
+  {
+    slug: "ligue1",
+    name: "Ligue 1",
+    country: "France"
+  },
+  {
+    slug: "ligue2",
+    name: "Ligue 2",
+    country: "France"
+  },
+  {
+    slug: "epl",
+    name: "Premier League",
+    country: "England"
+  },
+  {
+    slug: "laliga",
+    name: "La Liga",
+    country: "Spain"
+  },
+  {
+    slug: "bundesliga",
+    name: "Bundesliga",
+    country: "Germany"
+  },
+  {
+    slug: "seriea",
+    name: "Serie A",
+    country: "Italy"
+  },
+  {
+    slug: "ucl",
+    name: "Champions League",
+    country: "World"
+  },
+  {
+    slug: "uel",
+    name: "Europa League",
+    country: "World"
+  }
+];
+
+/* ==========================================
    UTILITAIRES
 ========================================== */
 
@@ -136,6 +183,17 @@ async function rateLimitResponse(cache, cacheKey, details = {}) {
   );
 
   return saveCache(cache, cacheKey, response);
+}
+
+function isRateLimitError(errors) {
+  const message = JSON.stringify(errors || {}).toLowerCase();
+
+  return (
+    message.includes("too many requests") ||
+    message.includes("rate limit") ||
+    message.includes("requests per minute") ||
+    message.includes("quota exceeded")
+  );
 }
 
 /* ==========================================
@@ -305,6 +363,289 @@ function normalizeNinjasMatches(
       source: "API Ninjas"
     };
   });
+}
+
+/* ==========================================
+   NORMALISATION MATCHS DU JOUR API NINJAS
+========================================== */
+
+function normalizeNinjasFixture(match, competition) {
+  const home = match.home_team || {};
+  const away = match.away_team || {};
+
+  const startTime =
+    match.start_time ||
+    match.date ||
+    null;
+
+  const rawStatus = String(
+    match.status || ""
+  ).toLowerCase();
+
+  let statusShort = "NS";
+  let statusLong = "À venir";
+
+  if (
+    rawStatus === "final" ||
+    rawStatus === "finished" ||
+    rawStatus === "completed"
+  ) {
+    statusShort = "FT";
+    statusLong = "Match terminé";
+  } else if (
+    rawStatus.includes("live") ||
+    rawStatus.includes("progress") ||
+    rawStatus.includes("half")
+  ) {
+    statusShort = "NINJAS_LIVE";
+    statusLong = "En cours — score en direct indisponible";
+  } else if (
+    rawStatus.includes("postpon")
+  ) {
+    statusShort = "PST";
+    statusLong = "Reporté";
+  } else if (
+    rawStatus.includes("cancel")
+  ) {
+    statusShort = "CANC";
+    statusLong = "Annulé";
+  }
+
+  const hasScores =
+    match.home_score !== null &&
+    match.home_score !== undefined &&
+    match.away_score !== null &&
+    match.away_score !== undefined;
+
+  const homeScore = hasScores
+    ? Number(match.home_score)
+    : null;
+
+  const awayScore = hasScores
+    ? Number(match.away_score)
+    : null;
+
+  if (
+    hasScores &&
+    rawStatus !== "scheduled" &&
+    rawStatus !== "upcoming"
+  ) {
+    if (
+      rawStatus === "final" ||
+      rawStatus === "finished" ||
+      rawStatus === "completed"
+    ) {
+      statusShort = "FT";
+      statusLong = "Match terminé";
+    }
+  }
+
+  return {
+    fixture: {
+      id: `ninjas:${match.game_id || `${competition.slug}:${startTime}:${home.name}:${away.name}`}`,
+      date: startTime,
+      timestamp: startTime
+        ? Math.floor(new Date(startTime).getTime() / 1000)
+        : null,
+      status: {
+        short: statusShort,
+        long: statusLong,
+        elapsed: null
+      }
+    },
+
+    teams: {
+      home: {
+        id: home.team_id || null,
+        name: home.name || "Équipe domicile",
+        logo: null,
+        winner: hasScores
+          ? homeScore > awayScore
+          : null
+      },
+
+      away: {
+        id: away.team_id || null,
+        name: away.name || "Équipe extérieure",
+        logo: null,
+        winner: hasScores
+          ? awayScore > homeScore
+          : null
+      }
+    },
+
+    goals: {
+      home: homeScore,
+      away: awayScore
+    },
+
+    league: {
+      id: `ninjas-${competition.slug}`,
+      name: competition.name,
+      country: competition.country,
+      logo: null,
+      flag: null,
+      season: new Date().getUTCFullYear()
+    },
+
+    source: "API Ninjas",
+    sourceGameId: match.game_id || null
+  };
+}
+
+/* ==========================================
+   SECOURS MATCHS DU JOUR API NINJAS
+   8 COMPÉTITIONS
+========================================== */
+
+async function getNinjasFixtures(
+  date,
+  env,
+  cache,
+  cacheKey,
+  reason = "API-Football indisponible"
+) {
+  if (!env.API_NINJAS_KEY) {
+    return json({
+      success: false,
+      provider: "API Ninjas",
+      message: "Clé API Ninjas non configurée",
+      fallback: false
+    }, 503);
+  }
+
+  try {
+    const requests = NINJAS_FIXTURE_LEAGUES.map(
+      async competition => {
+        const endpoint =
+          `/soccermatches?league=${encodeURIComponent(competition.slug)}` +
+          `&date=${encodeURIComponent(date)}`;
+
+        const matches = await ninjasRequest(
+          endpoint,
+          env.API_NINJAS_KEY
+        );
+
+        if (!Array.isArray(matches)) {
+          throw new Error(
+            `Format invalide pour ${competition.name}`
+          );
+        }
+
+        return {
+          competition,
+          matches
+        };
+      }
+    );
+
+    const settled = await Promise.allSettled(requests);
+
+    const allMatches = [];
+    const failedLeagues = [];
+    const successfulLeagues = [];
+
+    for (let index = 0; index < settled.length; index++) {
+      const result = settled[index];
+      const competition = NINJAS_FIXTURE_LEAGUES[index];
+
+      if (result.status === "fulfilled") {
+        successfulLeagues.push(competition.slug);
+
+        for (const match of result.value.matches) {
+          allMatches.push(
+            normalizeNinjasFixture(
+              match,
+              competition
+            )
+          );
+        }
+      } else {
+        failedLeagues.push({
+          league: competition.slug,
+          error: result.reason?.message || "Erreur inconnue"
+        });
+
+        console.error(
+          "NINJAS FIXTURE ERROR:",
+          competition.slug,
+          result.reason
+        );
+      }
+    }
+
+    if (
+      successfulLeagues.length === 0
+    ) {
+      return json({
+        success: false,
+        provider: "API Ninjas",
+        message: "Impossible de récupérer les matchs via API Ninjas",
+        reason,
+        failedLeagues
+      }, 502);
+    }
+
+    const uniqueMatches = [];
+    const seen = new Set();
+
+    for (const match of allMatches) {
+      const key =
+        match.sourceGameId ||
+        `${match.league.id}:${match.fixture.date}:${normalizeName(match.teams.home.name)}:${normalizeName(match.teams.away.name)}`;
+
+      if (seen.has(key)) continue;
+
+      seen.add(key);
+      uniqueMatches.push(match);
+    }
+
+    uniqueMatches.sort((a, b) => {
+      const dateA = new Date(a.fixture.date || 0).getTime();
+      const dateB = new Date(b.fixture.date || 0).getTime();
+
+      return dateA - dateB;
+    });
+
+    const result = {
+      success: true,
+      provider: "API Ninjas",
+      fallback: true,
+      fallbackReason: reason,
+      date,
+      results: uniqueMatches.length,
+      response: uniqueMatches,
+      competitionsRequested: NINJAS_FIXTURE_LEAGUES.length,
+      competitionsSuccessful: successfulLeagues,
+      partial: failedLeagues.length > 0,
+      failedLeagues
+    };
+
+    const response = new Response(
+      JSON.stringify(result),
+      {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          "Cache-Control": "public, max-age=600",
+          "X-SPORTPULSE-PROVIDER": "API-Ninjas",
+          "X-SPORTPULSE-CACHE": "FALLBACK"
+        }
+      }
+    );
+
+    return saveCache(cache, cacheKey, response);
+
+  } catch (error) {
+    console.error("NINJAS FIXTURES ERROR:", error);
+
+    return json({
+      success: false,
+      provider: "API Ninjas",
+      message: "Erreur pendant la récupération des matchs",
+      details: error.message
+    }, 502);
+  }
 }
 
 /* ==========================================
@@ -735,14 +1076,8 @@ export default {
     }
 
     /* ======================================
-       API FOOTBALL
+       CONFIGURATION ROUTES API FOOTBALL
     ====================================== */
-
-    if (!env.API_FOOTBALL_KEY) {
-      return json({
-        error: "Clé API-Football non configurée"
-      }, 503);
-    }
 
     let endpoint;
     let cacheDuration;
@@ -879,6 +1214,13 @@ export default {
 
         /* REPLI API FOOTBALL */
 
+        if (!env.API_FOOTBALL_KEY) {
+          return json({
+            error: "Clé API-Football non configurée",
+            provider: "API-Football"
+          }, 503);
+        }
+
         const season = new Date().getUTCFullYear();
 
         const fallbackEndpoint =
@@ -894,24 +1236,19 @@ export default {
           fallbackData.errors &&
           Object.keys(fallbackData.errors).length > 0
         ) {
-          const errorResponse = new Response(
-            JSON.stringify({
-              error: "Impossible de récupérer la forme récente",
-              provider: "API-Football",
-              errors: fallbackData.errors,
-              rateLimit: true
-            }),
-            {
-              status: 200,
-              headers: {
-                ...corsHeaders,
-                "Cache-Control": "public, max-age=60",
-                "X-SPORTPULSE-CACHE": "RATE-LIMIT"
-              }
-            }
-          );
+          if (isRateLimitError(fallbackData.errors)) {
+            return rateLimitResponse(
+              cache,
+              cacheKey,
+              fallbackData.errors
+            );
+          }
 
-          return saveCache(cache, cacheKey, errorResponse);
+          return json({
+            error: "Impossible de récupérer la forme récente",
+            provider: "API-Football",
+            errors: fallbackData.errors
+          }, 502);
         }
 
         const finalData = getLastFiveFinished(fallbackData);
@@ -983,7 +1320,7 @@ export default {
     }
 
     /* ======================================
-       CACHE API FOOTBALL
+       CACHE
     ====================================== */
 
     const cache = caches.default;
@@ -993,20 +1330,85 @@ export default {
       const cached = await getCached(cache, cacheKey);
       if (cached) return cached;
 
-      const data = await footballRequest(
-        endpoint,
-        env.API_FOOTBALL_KEY
-      );
+      /* ====================================
+         API FOOTBALL PRIORITAIRE
+      ==================================== */
+
+      if (!env.API_FOOTBALL_KEY) {
+        if (path === "/football/fixtures") {
+          return getNinjasFixtures(
+            url.searchParams.get("date"),
+            env,
+            cache,
+            cacheKey,
+            "Clé API-Football non configurée"
+          );
+        }
+
+        return json({
+          error: "Clé API-Football non configurée"
+        }, 503);
+      }
+
+      let data;
+
+      try {
+        data = await footballRequest(
+          endpoint,
+          env.API_FOOTBALL_KEY
+        );
+      } catch (error) {
+
+        /* SECOURS UNIQUEMENT POUR LES MATCHS DU JOUR */
+
+        if (
+          path === "/football/fixtures" &&
+          error.rateLimit
+        ) {
+          return getNinjasFixtures(
+            url.searchParams.get("date"),
+            env,
+            cache,
+            cacheKey,
+            "Limite API-Football atteinte"
+          );
+        }
+
+        throw error;
+      }
+
+      /* ERREURS RENVOYÉES DANS LE JSON */
 
       if (
         data.errors &&
         Object.keys(data.errors).length > 0
       ) {
-        return rateLimitResponse(
-          cache,
-          cacheKey,
-          data.errors
-        );
+        if (
+          path === "/football/fixtures" &&
+          isRateLimitError(data.errors)
+        ) {
+          return getNinjasFixtures(
+            url.searchParams.get("date"),
+            env,
+            cache,
+            cacheKey,
+            "Limite API-Football atteinte"
+          );
+        }
+
+        if (isRateLimitError(data.errors)) {
+          return rateLimitResponse(
+            cache,
+            cacheKey,
+            data.errors
+          );
+        }
+
+        return json({
+          success: false,
+          provider: "API-Football",
+          errors: data.errors
+        }, 502);
       }
 
       const finalData = filterLastFive
@@ -1014,13 +1416,17 @@ export default {
         : data;
 
       const response = new Response(
-        JSON.stringify(finalData),
+        JSON.stringify({
+          ...finalData,
+          provider: "API-Football"
+        }),
         {
           status: 200,
           headers: {
             ...corsHeaders,
             "Cache-Control": `public, max-age=${cacheDuration}`,
-            "X-SPORTPULSE-CACHE": "MISS"
+            "X-SPORTPULSE-CACHE": "MISS",
+            "X-SPORTPULSE-PROVIDER": "API-Football"
           }
         }
       );
@@ -1029,6 +1435,19 @@ export default {
 
     } catch (error) {
       console.error("SPORTPULSE WORKER:", error);
+
+      if (
+        path === "/football/fixtures" &&
+        error.rateLimit
+      ) {
+        return getNinjasFixtures(
+          url.searchParams.get("date"),
+          env,
+          cache,
+          cacheKey,
+          "Limite API-Football atteinte"
+        );
+      }
 
       if (error.rateLimit) {
         return rateLimitResponse(
