@@ -1,3 +1,4 @@
+
 /* ==========================================
    SPORTPULSE AI — SPORTS DATA SERVICE
    API-FOOTBALL + API NINJAS
@@ -18,9 +19,7 @@ const SportsData = {
     const baseUrl = this.getApiBaseUrl();
 
     if (!baseUrl) {
-      throw new Error(
-        "Connexion au serveur sportif non configurée."
-      );
+      throw new Error("Connexion au serveur sportif non configurée.");
     }
 
     try {
@@ -36,6 +35,12 @@ const SportsData = {
 
       if (data.errors && Object.keys(data.errors).length > 0) {
         throw new Error(JSON.stringify(data.errors));
+      }
+
+      if (data.success === false) {
+        throw new Error(
+          data.message || data.error || "Le fournisseur n'a pas retourné de données."
+        );
       }
 
       return data;
@@ -69,6 +74,12 @@ const SportsData = {
       throw new Error("Identifiant du match manquant.");
     }
 
+    if (String(fixtureId).startsWith("ninjas:")) {
+      throw new Error(
+        "Les statistiques détaillées ne sont pas disponibles pour ce match via le fournisseur de secours."
+      );
+    }
+
     return this.request(
       `/football/statistics?fixture=${encodeURIComponent(fixtureId)}`
     );
@@ -93,19 +104,32 @@ const SportsData = {
   },
 
   // CONFRONTATIONS DIRECTES
-  async getHeadToHead(homeId, awayId) {
+  async getHeadToHead(
+    homeId,
+    awayId,
+    homeName,
+    awayName,
+    league
+  ) {
     if (
       !homeId ||
       !awayId ||
       String(homeId) === String(awayId)
     ) {
-      throw new Error(
-        "Identifiants des équipes invalides."
-      );
+      throw new Error("Identifiants des équipes invalides.");
     }
 
+    const params = new URLSearchParams({
+      home: String(homeId),
+      away: String(awayId)
+    });
+
+    if (homeName) params.set("homeName", homeName);
+    if (awayName) params.set("awayName", awayName);
+    if (league) params.set("league", league);
+
     return this.request(
-      `/football/head-to-head?home=${encodeURIComponent(homeId)}&away=${encodeURIComponent(awayId)}`
+      `/football/head-to-head?${params.toString()}`
     );
   },
 
