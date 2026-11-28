@@ -1,3 +1,4 @@
+
 /* ==========================================
    SPORTPULSE AI — APPLICATION CORE
    MATCH DETAIL + REAL STATISTICS
@@ -573,10 +574,10 @@ const App = {
   },
 
   // ==========================================
-  // FORME RÉCENTE — CHARGEMENT
+  // CHAMPIONNATS API NINJAS
   // ==========================================
 
-    getNinjasLeagueSlug(league) {
+  getNinjasLeagueSlug(league) {
     const normalize = (value) => String(value || "")
       .toLowerCase()
       .normalize("NFD")
@@ -700,7 +701,6 @@ const App = {
       `;
     }
   },
-
 
   // ==========================================
   // HEAD TO HEAD — AFFICHAGE
@@ -828,10 +828,18 @@ const App = {
   // HEAD TO HEAD — CHARGEMENT
   // ==========================================
 
-  async loadHeadToHead(homeId, awayId) {
+  async loadHeadToHead(
+    homeId,
+    awayId,
+    homeName,
+    awayName,
+    league
+  ) {
     const container = document.getElementById("match-h2h-content");
 
     if (!container) return;
+
+    const selectedFixtureId = this.selectedMatch?.fixture?.id;
 
     container.innerHTML = `
       <div class="dashboard-empty">
@@ -842,13 +850,26 @@ const App = {
     try {
       const data = await window.SPORTPULSE_DATA.getHeadToHead(
         homeId,
-        awayId
+        awayId,
+        homeName,
+        awayName,
+        league
       );
+
+      if (
+        String(this.selectedMatch?.fixture?.id) !==
+        String(selectedFixtureId)
+      ) return;
 
       this.renderHeadToHead(data, homeId, awayId);
 
     } catch (error) {
       console.error("SPORTPULSE H2H ERROR:", error);
+
+      if (
+        String(this.selectedMatch?.fixture?.id) !==
+        String(selectedFixtureId)
+      ) return;
 
       container.innerHTML = `
         <div class="dashboard-empty">
@@ -1018,18 +1039,82 @@ const App = {
 
     window.scrollTo({ top: 0, behavior: "smooth" });
 
-    this.loadMatchStatistics(fixture.id);
+    // ======================================
+    // STATISTIQUES DU MATCH
+    // ======================================
+
+    const fixtureStatus = fixture.status?.short;
+
+    const unavailableStatuses = [
+      "NS",
+      "TBD",
+      "PST",
+      "CANC",
+      "ABD",
+      "AWD",
+      "WO"
+    ];
+
+    const statisticsContainer = document.getElementById(
+      "match-statistics-content"
+    );
+
+    if (String(fixture.id).startsWith("ninjas:")) {
+      if (statisticsContainer) {
+        statisticsContainer.innerHTML = `
+          <div class="dashboard-empty">
+            Statistiques détaillées indisponibles avec le fournisseur de secours.
+          </div>
+        `;
+      }
+    } else if (unavailableStatuses.includes(fixtureStatus)) {
+      if (statisticsContainer) {
+        statisticsContainer.innerHTML = `
+          <div class="dashboard-empty">
+            Les statistiques seront disponibles à partir du coup d'envoi.
+          </div>
+        `;
+      }
+    } else {
+      this.loadMatchStatistics(fixture.id);
+    }
+
+    // ======================================
+    // FORME RÉCENTE
+    // ======================================
 
     if (home.id) {
-  this.loadTeamForm(home.id, home.name, fixture.id, league);
-}
+      this.loadTeamForm(
+        home.id,
+        home.name,
+        fixture.id,
+        league
+      );
+    }
 
-if (away.id) {
-  this.loadTeamForm(away.id, away.name, fixture.id, league);
-}
+    if (away.id) {
+      this.loadTeamForm(
+        away.id,
+        away.name,
+        fixture.id,
+        league
+      );
+    }
+
+    // ======================================
+    // CONFRONTATIONS DIRECTES
+    // ======================================
+
+    const leagueSlug = this.getNinjasLeagueSlug(league);
 
     if (home.id && away.id) {
-      this.loadHeadToHead(home.id, away.id);
+      this.loadHeadToHead(
+        home.id,
+        away.id,
+        home.name,
+        away.name,
+        leagueSlug
+      );
     }
   },
 
