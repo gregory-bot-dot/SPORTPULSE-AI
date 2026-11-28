@@ -2,7 +2,7 @@
 /* ==========================================
    SPORTPULSE AI — MATCHES ENGINE
    COUNTRY TABS + COMPACT MATCHES + FAVORITES
-   DATE NAVIGATION
+   DATE NAVIGATION + SEARCH + RESET
 ========================================== */
 
 const Matches = {
@@ -11,8 +11,10 @@ const Matches = {
   currentLeague: "all",
   currentCountry: "all",
   selectedDate: null,
+  searchTerm: "",
   filtersInitialized: false,
   leagueFilterInitialized: false,
+  searchInitialized: false,
   favorites: {},
   favoritesLoaded: false,
 
@@ -22,10 +24,11 @@ const Matches = {
 
   getToday() {
     const date = new Date();
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
+    return [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0")
+    ].join("-");
   },
 
   addDays(dateString, amount) {
@@ -59,8 +62,18 @@ const Matches = {
       nav = document.createElement("div");
       nav.id = "matches-date-navigation";
 
-      nav.style.cssText =
-        "display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:9px;margin:12px 0;padding:12px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:#111922;";
+      nav.style.cssText = `
+        display:flex;
+        flex-wrap:wrap;
+        align-items:center;
+        justify-content:space-between;
+        gap:9px;
+        margin:12px 0;
+        padding:12px;
+        border:1px solid rgba(255,255,255,.1);
+        border-radius:12px;
+        background:#111922;
+      `;
 
       nav.innerHTML = `
         <button type="button" data-date-offset="-1">‹ Veille</button>
@@ -81,8 +94,14 @@ const Matches = {
       `;
 
       nav.querySelectorAll("button").forEach((button) => {
-        button.style.cssText =
-          "padding:8px 11px;border-radius:8px;border:1px solid rgba(182,243,74,.3);background:rgba(182,243,74,.1);color:#B6F34A;font-weight:700;";
+        button.style.cssText = `
+          padding:8px 11px;
+          border-radius:8px;
+          border:1px solid rgba(182,243,74,.3);
+          background:rgba(182,243,74,.1);
+          color:#B6F34A;
+          font-weight:700;
+        `;
       });
 
       nav.addEventListener("click", (event) => {
@@ -106,13 +125,13 @@ const Matches = {
         this.loadToday("matches-page-list");
       });
 
+      const searchControls = document.getElementById("matches-search-controls");
       const tabs = document.getElementById("matches-country-tabs");
 
-      container.parentNode.insertBefore(nav, tabs || container);
+      container.parentNode.insertBefore(nav, searchControls || tabs || container);
     }
 
     this.renderDateNavigation();
-
     return nav;
   },
 
@@ -125,20 +144,13 @@ const Matches = {
     const label = nav.querySelector("[data-date-label]");
     const picker = nav.querySelector("[data-date-picker]");
 
-    if (label) {
-      label.textContent = this.formatDateLabel(selected);
-    }
-
-    if (picker) {
-      picker.value = selected;
-    }
+    if (label) label.textContent = this.formatDateLabel(selected);
+    if (picker) picker.value = selected;
   },
 
   changeSelectedDate(offset) {
     const base = this.selectedDate || this.getToday();
-
     this.selectedDate = this.addDays(base, offset);
-
     this.loadToday("matches-page-list");
   },
 
@@ -276,7 +288,6 @@ const Matches = {
 
     if (logo) {
       image.src = logo;
-
       image.onerror = () => {
         image.style.display = "none";
       };
@@ -289,7 +300,6 @@ const Matches = {
     label.textContent = name || "Équipe inconnue";
 
     team.append(image, label);
-
     return team;
   },
 
@@ -322,7 +332,6 @@ const Matches = {
     }
 
     league.appendChild(details);
-
     return league;
   },
 
@@ -430,7 +439,6 @@ const Matches = {
     });
 
     footer.append(footerLeft, favoriteButton);
-
     card.dataset.status = statusInfo.type;
     card.append(league, teams, footer);
 
@@ -449,313 +457,335 @@ const Matches = {
 
     style.textContent = `
       .matches-country-group {
-        margin-bottom: 14px;
-        border: 1px solid rgba(255,255,255,.07);
-        border-radius: 12px;
-        overflow: hidden;
-        background: rgba(255,255,255,.015);
+        margin-bottom:14px;
+        border:1px solid rgba(255,255,255,.07);
+        border-radius:12px;
+        overflow:hidden;
+        background:rgba(255,255,255,.015);
       }
 
       .matches-country-heading {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 9px 12px;
-        background: rgba(255,255,255,.035);
-        border-bottom: 1px solid rgba(255,255,255,.06);
-        font-weight: 700;
-        font-size: 13px;
+        display:flex;
+        align-items:center;
+        gap:8px;
+        padding:9px 12px;
+        background:rgba(255,255,255,.035);
+        border-bottom:1px solid rgba(255,255,255,.06);
+        font-weight:700;
+        font-size:13px;
       }
 
       .matches-country-heading .match-country-flag {
-        width: 20px;
-        height: 14px;
-        object-fit: cover;
-        border-radius: 3px;
+        width:20px;
+        height:14px;
+        object-fit:cover;
+        border-radius:3px;
       }
 
-      .matches-country-title {
-        flex: 1;
-      }
-
-      .matches-country-count {
-        font-size: 11px;
-        opacity: .6;
-      }
+      .matches-country-title { flex:1; }
+      .matches-country-count { font-size:11px; opacity:.6; }
 
       .matches-league-group {
-        padding: 7px 9px 9px;
-        border-bottom: 1px solid rgba(255,255,255,.05);
+        padding:7px 9px 9px;
+        border-bottom:1px solid rgba(255,255,255,.05);
       }
 
-      .matches-league-group:last-child {
-        border-bottom: none;
-      }
+      .matches-league-group:last-child { border-bottom:none; }
 
       .matches-league-heading {
-        display: flex;
-        align-items: center;
-        gap: 7px;
-        padding: 5px 3px 8px;
-        font-size: 12px;
-        font-weight: 700;
-        opacity: .9;
+        display:flex;
+        align-items:center;
+        gap:7px;
+        padding:5px 3px 8px;
+        font-size:12px;
+        font-weight:700;
+        opacity:.9;
       }
 
       .matches-league-heading .match-country-flag {
-        width: 17px;
-        height: 12px;
-        object-fit: cover;
-        border-radius: 2px;
+        width:17px;
+        height:12px;
+        object-fit:cover;
+        border-radius:2px;
       }
 
       .matches-league-count {
-        margin-left: auto;
-        font-size: 10px;
-        opacity: .55;
+        margin-left:auto;
+        font-size:10px;
+        opacity:.55;
       }
 
       .matches-league-group .dashboard-match-card {
-        position: relative;
-        margin-bottom: 7px;
-        padding: 10px 11px;
-        border-radius: 10px;
+        position:relative;
+        margin-bottom:7px;
+        padding:10px 11px;
+        border-radius:10px;
       }
 
       .matches-league-group .dashboard-match-card:last-child {
-        margin-bottom: 0;
+        margin-bottom:0;
       }
 
-      .matches-league-group .match-league {
-        margin-bottom: 7px;
-      }
-
-      .matches-league-group .match-league-name {
-        font-size: 10px;
-      }
-
-      .matches-league-group .match-league-info {
-        font-size: 9px;
-      }
-
-      .matches-league-group .dashboard-match-teams {
-        gap: 5px;
-      }
-
-      .matches-league-group .match-team-logo {
-        width: 25px;
-        height: 25px;
-      }
-
-      .matches-league-group .match-team-name {
-        font-size: 11px;
-      }
-
-      .matches-league-group .match-score {
-        font-size: 14px;
-      }
+      .matches-league-group .match-league { margin-bottom:7px; }
+      .matches-league-group .match-league-name { font-size:10px; }
+      .matches-league-group .match-league-info { font-size:9px; }
+      .matches-league-group .dashboard-match-teams { gap:5px; }
+      .matches-league-group .match-team-logo { width:25px; height:25px; }
+      .matches-league-group .match-team-name { font-size:11px; }
+      .matches-league-group .match-score { font-size:14px; }
 
       .matches-league-group .match-card-footer {
-        margin-top: 7px;
-        padding-top: 6px;
+        margin-top:7px;
+        padding-top:6px;
       }
 
       .matches-country-tabs {
-        display: flex;
-        align-items: center;
-        gap: 7px;
-        overflow-x: auto;
-        padding: 5px 1px 12px;
-        margin-bottom: 4px;
-        scrollbar-width: none;
-        -webkit-overflow-scrolling: touch;
+        display:flex;
+        align-items:center;
+        gap:7px;
+        overflow-x:auto;
+        padding:5px 1px 12px;
+        margin-bottom:4px;
+        scrollbar-width:none;
+        -webkit-overflow-scrolling:touch;
       }
 
-      .matches-country-tabs::-webkit-scrollbar {
-        display: none;
-      }
+      .matches-country-tabs::-webkit-scrollbar { display:none; }
 
       .matches-country-tab {
-        flex: 0 0 auto;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        min-height: 34px;
-        padding: 7px 11px;
-        border: 1px solid rgba(255,255,255,.1);
-        border-radius: 20px;
-        background: #111922;
-        color: inherit;
-        font: inherit;
-        font-size: 11px;
-        font-weight: 650;
-        white-space: nowrap;
-        cursor: pointer;
+        flex:0 0 auto;
+        display:flex;
+        align-items:center;
+        gap:6px;
+        min-height:34px;
+        padding:7px 11px;
+        border:1px solid rgba(255,255,255,.1);
+        border-radius:20px;
+        background:#111922;
+        color:inherit;
+        font:inherit;
+        font-size:11px;
+        font-weight:650;
+        white-space:nowrap;
+        cursor:pointer;
       }
 
       .matches-country-tab.active {
-        background: rgba(182,243,74,.13);
-        border-color: #B6F34A;
-        color: #B6F34A;
+        background:rgba(182,243,74,.13);
+        border-color:#B6F34A;
+        color:#B6F34A;
       }
 
       .matches-country-tab img {
-        width: 17px;
-        height: 12px;
-        object-fit: cover;
-        border-radius: 2px;
+        width:17px;
+        height:12px;
+        object-fit:cover;
+        border-radius:2px;
       }
 
       .matches-country-tab-count {
-        opacity: .6;
-        font-size: 10px;
+        opacity:.6;
+        font-size:10px;
       }
 
       .match-card-footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:8px;
       }
 
       .match-card-footer-left {
-        display: flex;
-        align-items: center;
-        gap: 9px;
+        display:flex;
+        align-items:center;
+        gap:9px;
       }
 
       .match-favorite-button {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex: 0 0 32px;
-        width: 32px;
-        height: 32px;
-        border: 1px solid rgba(255,255,255,.1);
-        border-radius: 50%;
-        background: rgba(255,255,255,.04);
-        color: #AAB4BD;
-        font-size: 20px;
-        line-height: 1;
-        cursor: pointer;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        flex:0 0 32px;
+        width:32px;
+        height:32px;
+        border:1px solid rgba(255,255,255,.1);
+        border-radius:50%;
+        background:rgba(255,255,255,.04);
+        color:#AAB4BD;
+        font-size:20px;
+        line-height:1;
+        cursor:pointer;
       }
 
       .match-favorite-button.active {
-        color: #B6F34A;
-        border-color: rgba(182,243,74,.35);
-        background: rgba(182,243,74,.1);
+        color:#B6F34A;
+        border-color:rgba(182,243,74,.35);
+        background:rgba(182,243,74,.1);
       }
 
       .matches-custom-filter {
-        position: relative;
-        width: 100%;
-        margin: 8px 0 12px;
+        position:relative;
+        width:100%;
+        margin:8px 0 12px;
       }
 
       .matches-custom-filter-button {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        width: 100%;
-        min-height: 42px;
-        padding: 9px 12px;
-        border: 1px solid rgba(255,255,255,.12);
-        border-radius: 10px;
-        background: #111922;
-        color: inherit;
-        font: inherit;
-        text-align: left;
-        cursor: pointer;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:10px;
+        width:100%;
+        min-height:42px;
+        padding:9px 12px;
+        border:1px solid rgba(255,255,255,.12);
+        border-radius:10px;
+        background:#111922;
+        color:inherit;
+        font:inherit;
+        text-align:left;
+        cursor:pointer;
       }
 
       .matches-custom-filter-label {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        min-width: 0;
-        font-size: 12px;
+        display:flex;
+        align-items:center;
+        gap:8px;
+        min-width:0;
+        font-size:12px;
       }
 
       .matches-custom-filter-label img {
-        width: 19px;
-        height: 13px;
-        object-fit: cover;
-        border-radius: 2px;
+        width:19px;
+        height:13px;
+        object-fit:cover;
+        border-radius:2px;
       }
 
       .matches-custom-filter-panel {
-        display: none;
-        position: absolute;
-        z-index: 100;
-        top: calc(100% + 6px);
-        left: 0;
-        right: 0;
-        max-height: 320px;
-        overflow-y: auto;
-        padding: 7px;
-        border: 1px solid rgba(255,255,255,.12);
-        border-radius: 12px;
-        background: #111922;
-        box-shadow: 0 12px 30px rgba(0,0,0,.4);
+        display:none;
+        position:absolute;
+        z-index:100;
+        top:calc(100% + 6px);
+        left:0;
+        right:0;
+        max-height:320px;
+        overflow-y:auto;
+        padding:7px;
+        border:1px solid rgba(255,255,255,.12);
+        border-radius:12px;
+        background:#111922;
+        box-shadow:0 12px 30px rgba(0,0,0,.4);
       }
 
       .matches-custom-filter.open .matches-custom-filter-panel {
-        display: block;
+        display:block;
       }
 
       .matches-filter-country {
-        display: flex;
-        align-items: center;
-        gap: 7px;
-        padding: 9px 8px 5px;
-        font-size: 10px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: .06em;
-        opacity: .55;
+        display:flex;
+        align-items:center;
+        gap:7px;
+        padding:9px 8px 5px;
+        font-size:10px;
+        font-weight:800;
+        text-transform:uppercase;
+        letter-spacing:.06em;
+        opacity:.55;
       }
 
       .matches-filter-country img {
-        width: 17px;
-        height: 12px;
-        object-fit: cover;
-        border-radius: 2px;
+        width:17px;
+        height:12px;
+        object-fit:cover;
+        border-radius:2px;
       }
 
       .matches-filter-option {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        width: 100%;
-        padding: 8px;
-        border: 0;
-        border-radius: 7px;
-        background: transparent;
-        color: inherit;
-        font: inherit;
-        text-align: left;
-        cursor: pointer;
+        display:flex;
+        align-items:center;
+        gap:8px;
+        width:100%;
+        padding:8px;
+        border:0;
+        border-radius:7px;
+        background:transparent;
+        color:inherit;
+        font:inherit;
+        text-align:left;
+        cursor:pointer;
       }
 
       .matches-filter-option:hover,
       .matches-filter-option.active {
-        background: rgba(182,243,74,.12);
+        background:rgba(182,243,74,.12);
       }
 
       .matches-filter-option img {
-        width: 19px;
-        height: 13px;
-        object-fit: cover;
-        border-radius: 2px;
+        width:19px;
+        height:13px;
+        object-fit:cover;
+        border-radius:2px;
       }
 
-      .matches-filter-option span {
-        font-size: 12px;
+      .matches-filter-option span { font-size:12px; }
+      .matches-native-select-hidden { display:none !important; }
+
+      /* SEARCH TOOLBAR */
+      .matches-search-toolbar {
+        display:flex;
+        flex-direction:column;
+        gap:9px;
+        margin:10px 0;
       }
 
-      .matches-native-select-hidden {
-        display: none !important;
+      .matches-search-row {
+        display:flex;
+        gap:8px;
+        width:100%;
+      }
+
+      .matches-search-input {
+        flex:1;
+        min-width:0;
+        width:100%;
+        padding:11px 12px;
+        border:1px solid rgba(255,255,255,.12);
+        border-radius:10px;
+        background:#111922;
+        color:#fff;
+        font-size:14px;
+        outline:none;
+      }
+
+      .matches-search-input:focus {
+        border-color:#B6F34A;
+        box-shadow:0 0 0 2px rgba(182,243,74,.12);
+      }
+
+      .matches-search-reset {
+        flex:0 0 auto;
+        padding:9px 12px;
+        border:1px solid rgba(182,243,74,.3);
+        border-radius:10px;
+        background:rgba(182,243,74,.1);
+        color:#B6F34A;
+        font-weight:700;
+        cursor:pointer;
+      }
+
+      .matches-search-summary {
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        flex-wrap:wrap;
+        gap:6px;
+        font-size:11px;
+        opacity:.7;
+      }
+
+      .matches-search-summary strong {
+        color:#B6F34A;
+        opacity:1;
       }
     `;
 
@@ -763,7 +793,7 @@ const Matches = {
   },
 
   // ==========================================
-  // GROUPES DE PAYS ET CHAMPIONNATS
+  // GROUPEMENT PAYS / CHAMPIONNATS
   // ==========================================
 
   groupFixtures(fixtures) {
@@ -874,7 +904,7 @@ const Matches = {
   },
 
   // ==========================================
-  // ONGLET DES PAYS
+  // ONGLET PAYS
   // ==========================================
 
   ensureCountryTabs() {
@@ -914,16 +944,8 @@ const Matches = {
     }));
 
     const definitions = [
-      {
-        id: "all",
-        label: "Tous",
-        count: this.currentFixtures.length
-      },
-      {
-        id: "favorites",
-        label: "★ Favoris",
-        count: favoriteMatches.length
-      },
+      { id: "all", label: "Tous", count: this.currentFixtures.length },
+      { id: "favorites", label: "★ Favoris", count: favoriteMatches.length },
       ...countries.map((country) => ({
         id: country.name,
         label: country.name,
@@ -965,6 +987,110 @@ const Matches = {
 
       tabs.appendChild(button);
     });
+  },
+
+  // ==========================================
+  // RECHERCHE + RÉINITIALISATION
+  // ==========================================
+
+  ensureSearchControls() {
+    const container = document.getElementById("matches-page-list");
+    if (!container || !container.parentNode) return null;
+
+    let toolbar = document.getElementById("matches-search-controls");
+
+    if (!toolbar) {
+      toolbar = document.createElement("div");
+      toolbar.id = "matches-search-controls";
+      toolbar.className = "matches-search-toolbar";
+
+      toolbar.innerHTML = `
+        <div class="matches-search-row">
+          <input
+            type="search"
+            class="matches-search-input"
+            id="matches-team-search"
+            placeholder="Rechercher une équipe ou compétition..."
+            aria-label="Rechercher une équipe ou compétition"
+            autocomplete="off"
+          >
+          <button type="button" class="matches-search-reset" id="matches-reset-filters">
+            Réinitialiser
+          </button>
+        </div>
+        <div class="matches-search-summary" id="matches-search-summary">
+          <span>Matchs affichés : <strong>0</strong></span>
+        </div>
+      `;
+
+      const nav = document.getElementById("matches-date-navigation");
+      const tabs = document.getElementById("matches-country-tabs");
+
+      container.parentNode.insertBefore(toolbar, tabs || container);
+
+      const searchInput = toolbar.querySelector("#matches-team-search");
+
+      searchInput.addEventListener("input", () => {
+        this.searchTerm = searchInput.value;
+        this.renderFilteredMatches();
+      });
+
+      toolbar.querySelector("#matches-reset-filters").addEventListener("click", () => {
+        this.resetFilters();
+      });
+    }
+
+    return toolbar;
+  },
+
+  initSearchControls() {
+    this.ensureSearchControls();
+    this.searchInitialized = true;
+  },
+
+  resetFilters() {
+    this.currentFilter = "all";
+    this.currentLeague = "all";
+    this.currentCountry = "all";
+    this.searchTerm = "";
+
+    const input = document.getElementById("matches-team-search");
+    if (input) input.value = "";
+
+    const leagueSelect = document.getElementById("matches-league-select");
+    if (leagueSelect) leagueSelect.value = "all";
+
+    const leagueLabel = document.querySelector(
+      "#matches-custom-filter .matches-custom-filter-label"
+    );
+
+    if (leagueLabel) leagueLabel.textContent = "Tous les championnats";
+
+    const leagueWrapper = document.getElementById("matches-custom-filter");
+    if (leagueWrapper) leagueWrapper.classList.remove("open");
+
+    const filters = document.querySelector(".matches-filters");
+    if (filters) {
+      filters.querySelectorAll("[data-match-filter]").forEach((button) => {
+        button.classList.toggle(
+          "active",
+          button.dataset.matchFilter === "all"
+        );
+      });
+    }
+
+    this.renderCountryTabs();
+    this.renderFilteredMatches();
+  },
+
+  updateSearchSummary(count, total) {
+    const summary = document.getElementById("matches-search-summary");
+    if (!summary) return;
+
+    summary.innerHTML = `
+      <span>Matchs affichés : <strong>${count}</strong></span>
+      <span>${total} rencontre${total > 1 ? "s" : ""} disponible${total > 1 ? "s" : ""}</span>
+    `;
   },
 
   // ==========================================
@@ -1091,7 +1217,6 @@ const Matches = {
     }
 
     const flag = this.createFlag(selected.dataset.flag);
-
     if (flag) button.appendChild(flag);
 
     const name = document.createElement("span");
@@ -1213,6 +1338,8 @@ const Matches = {
       ? this.getFavoriteFixtures()
       : this.currentFixtures;
 
+    const search = (this.searchTerm || "").trim().toLowerCase();
+
     const filtered = sourceFixtures.filter((match) => {
       const status = this.getStatus(match.fixture?.status?.short).type;
 
@@ -1229,8 +1356,22 @@ const Matches = {
         this.currentCountry === "favorites" ||
         this.getCountry(match) === this.currentCountry;
 
-      return statusMatches && leagueMatches && countryMatches;
+      const homeName = (match.teams?.home?.name || "").toLowerCase();
+      const awayName = (match.teams?.away?.name || "").toLowerCase();
+      const leagueName = (match.league?.name || "").toLowerCase();
+      const countryName = (match.league?.country || "").toLowerCase();
+
+      const searchMatches =
+        !search ||
+        homeName.includes(search) ||
+        awayName.includes(search) ||
+        leagueName.includes(search) ||
+        countryName.includes(search);
+
+      return statusMatches && leagueMatches && countryMatches && searchMatches;
     });
+
+    this.updateSearchSummary(filtered.length, sourceFixtures.length);
 
     container.replaceChildren();
 
@@ -1269,6 +1410,7 @@ const Matches = {
       this.selectedDate = selectedDate;
       this.injectGroupingStyles();
       this.ensureDateNavigation();
+      this.ensureSearchControls();
     }
 
     container.textContent = "Chargement des rencontres...";
@@ -1286,6 +1428,8 @@ const Matches = {
         this.currentFixtures = fixtures;
 
         this.injectGroupingStyles();
+        this.ensureSearchControls();
+        this.initSearchControls();
         this.initFilters();
         this.populateLeagueFilter();
         this.updateCounters();
