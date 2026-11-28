@@ -2,6 +2,7 @@
 /* ==========================================
    SPORTPULSE AI — MATCHES ENGINE
    COUNTRY TABS + COMPACT MATCHES + FAVORITES
+   DATE NAVIGATION
 ========================================== */
 
 const Matches = {
@@ -9,13 +10,14 @@ const Matches = {
   currentFilter: "all",
   currentLeague: "all",
   currentCountry: "all",
+  selectedDate: null,
   filtersInitialized: false,
   leagueFilterInitialized: false,
   favorites: {},
   favoritesLoaded: false,
 
   // ==========================================
-  // INITIALISATION
+  // INITIALISATION ET DATES
   // ==========================================
 
   getToday() {
@@ -25,6 +27,124 @@ const Matches = {
     const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   },
+
+  addDays(dateString, amount) {
+    const [year, month, day] = dateString.split("-").map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day + amount));
+
+    return [
+      date.getUTCFullYear(),
+      String(date.getUTCMonth() + 1).padStart(2, "0"),
+      String(date.getUTCDate()).padStart(2, "0")
+    ].join("-");
+  },
+
+  formatDateLabel(dateString) {
+    return new Date(`${dateString}T12:00:00`).toLocaleDateString("fr-FR", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      timeZone: "Europe/Paris"
+    });
+  },
+
+  ensureDateNavigation() {
+    const container = document.getElementById("matches-page-list");
+    if (!container || !container.parentNode) return null;
+
+    let nav = document.getElementById("matches-date-navigation");
+
+    if (!nav) {
+      nav = document.createElement("div");
+      nav.id = "matches-date-navigation";
+
+      nav.style.cssText =
+        "display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:9px;margin:12px 0;padding:12px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:#111922;";
+
+      nav.innerHTML = `
+        <button type="button" data-date-offset="-1">‹ Veille</button>
+
+        <div style="text-align:center;flex:1;min-width:120px">
+          <strong data-date-label style="display:block;text-transform:capitalize"></strong>
+          <button type="button" data-date-today>Aujourd'hui</button>
+        </div>
+
+        <button type="button" data-date-offset="1">Lendemain ›</button>
+
+        <input
+          type="date"
+          data-date-picker
+          aria-label="Choisir une date"
+          style="width:100%;padding:9px;border-radius:8px;background:#090D12;color:white;border:1px solid #333"
+        >
+      `;
+
+      nav.querySelectorAll("button").forEach((button) => {
+        button.style.cssText =
+          "padding:8px 11px;border-radius:8px;border:1px solid rgba(182,243,74,.3);background:rgba(182,243,74,.1);color:#B6F34A;font-weight:700;";
+      });
+
+      nav.addEventListener("click", (event) => {
+        const offsetButton = event.target.closest("[data-date-offset]");
+
+        if (offsetButton) {
+          this.changeSelectedDate(Number(offsetButton.dataset.dateOffset));
+          return;
+        }
+
+        if (event.target.closest("[data-date-today]")) {
+          this.selectedDate = this.getToday();
+          this.loadToday("matches-page-list");
+        }
+      });
+
+      nav.querySelector("[data-date-picker]").addEventListener("change", (event) => {
+        if (!event.target.value) return;
+
+        this.selectedDate = event.target.value;
+        this.loadToday("matches-page-list");
+      });
+
+      const tabs = document.getElementById("matches-country-tabs");
+
+      container.parentNode.insertBefore(nav, tabs || container);
+    }
+
+    this.renderDateNavigation();
+
+    return nav;
+  },
+
+  renderDateNavigation() {
+    const nav = document.getElementById("matches-date-navigation");
+    if (!nav) return;
+
+    const selected = this.selectedDate || this.getToday();
+
+    const label = nav.querySelector("[data-date-label]");
+    const picker = nav.querySelector("[data-date-picker]");
+
+    if (label) {
+      label.textContent = this.formatDateLabel(selected);
+    }
+
+    if (picker) {
+      picker.value = selected;
+    }
+  },
+
+  changeSelectedDate(offset) {
+    const base = this.selectedDate || this.getToday();
+
+    this.selectedDate = this.addDays(base, offset);
+
+    this.loadToday("matches-page-list");
+  },
+
+  // ==========================================
+  // FAVORIS
+  // ==========================================
 
   loadFavorites() {
     if (this.favoritesLoaded) return;
@@ -156,6 +276,7 @@ const Matches = {
 
     if (logo) {
       image.src = logo;
+
       image.onerror = () => {
         image.style.display = "none";
       };
@@ -168,6 +289,7 @@ const Matches = {
     label.textContent = name || "Équipe inconnue";
 
     team.append(image, label);
+
     return team;
   },
 
@@ -200,11 +322,12 @@ const Matches = {
     }
 
     league.appendChild(details);
+
     return league;
   },
 
   // ==========================================
-  // CARTE DE MATCH COMPACTE
+  // CARTE DE MATCH
   // ==========================================
 
   createCard(match) {
@@ -286,7 +409,6 @@ const Matches = {
     footerLeft.className = "match-card-footer-left";
     footerLeft.append(status, time);
 
-    // Bouton favori
     const favoriteButton = document.createElement("button");
     favoriteButton.type = "button";
     favoriteButton.className = "match-favorite-button";
@@ -295,6 +417,7 @@ const Matches = {
 
     favoriteButton.textContent = favorite ? "★" : "☆";
     favoriteButton.classList.toggle("active", favorite);
+
     favoriteButton.setAttribute(
       "aria-label",
       favorite ? "Retirer des favoris" : "Ajouter aux favoris"
@@ -325,8 +448,6 @@ const Matches = {
     style.id = "sportpulse-grouping-styles";
 
     style.textContent = `
-      /* Pays */
-
       .matches-country-group {
         margin-bottom: 14px;
         border: 1px solid rgba(255,255,255,.07);
@@ -362,8 +483,6 @@ const Matches = {
         opacity: .6;
       }
 
-      /* Championnats */
-
       .matches-league-group {
         padding: 7px 9px 9px;
         border-bottom: 1px solid rgba(255,255,255,.05);
@@ -395,8 +514,6 @@ const Matches = {
         font-size: 10px;
         opacity: .55;
       }
-
-      /* Cartes compactes */
 
       .matches-league-group .dashboard-match-card {
         position: relative;
@@ -442,8 +559,6 @@ const Matches = {
         margin-top: 7px;
         padding-top: 6px;
       }
-
-      /* Onglets des pays */
 
       .matches-country-tabs {
         display: flex;
@@ -496,8 +611,6 @@ const Matches = {
         font-size: 10px;
       }
 
-      /* Favoris */
-
       .match-card-footer {
         display: flex;
         align-items: center;
@@ -532,8 +645,6 @@ const Matches = {
         border-color: rgba(182,243,74,.35);
         background: rgba(182,243,74,.1);
       }
-
-      /* Filtre championnat */
 
       .matches-custom-filter {
         position: relative;
@@ -1098,7 +1209,7 @@ const Matches = {
     const container = document.getElementById("matches-page-list");
     if (!container) return;
 
-    let sourceFixtures = this.currentCountry === "favorites"
+    const sourceFixtures = this.currentCountry === "favorites"
       ? this.getFavoriteFixtures()
       : this.currentFixtures;
 
@@ -1148,10 +1259,22 @@ const Matches = {
 
     this.loadFavorites();
 
+    const isMatchesPage = containerId === "matches-page-list";
+
+    const selectedDate = isMatchesPage
+      ? (this.selectedDate || this.getToday())
+      : this.getToday();
+
+    if (isMatchesPage) {
+      this.selectedDate = selectedDate;
+      this.injectGroupingStyles();
+      this.ensureDateNavigation();
+    }
+
     container.textContent = "Chargement des rencontres...";
 
     try {
-      const data = await window.SPORTPULSE_DATA.getFixtures(this.getToday());
+      const data = await window.SPORTPULSE_DATA.getFixtures(selectedDate);
 
       if (data.errors && Object.keys(data.errors).length > 0) {
         throw new Error(JSON.stringify(data.errors));
@@ -1161,15 +1284,13 @@ const Matches = {
 
       if (containerId === "matches-page-list") {
         this.currentFixtures = fixtures;
-        this.currentFilter = "all";
-        this.currentLeague = "all";
-        this.currentCountry = "all";
 
         this.injectGroupingStyles();
         this.initFilters();
         this.populateLeagueFilter();
         this.updateCounters();
         this.renderCountryTabs();
+        this.renderDateNavigation();
 
         const filters = document.querySelector(".matches-filters");
 
