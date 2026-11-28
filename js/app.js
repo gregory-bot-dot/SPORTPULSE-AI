@@ -574,6 +574,92 @@ const App = {
   },
 
   // ==========================================
+  // CENTRE D'ANALYSE
+  // ==========================================
+
+  renderAnalysisCentre() {
+    const container = document.getElementById("match-analysis-content");
+    if (!container) return;
+
+    const data = this.analysisTeamData || {};
+    const home = this.selectedMatch?.teams?.home || {};
+    const away = this.selectedMatch?.teams?.away || {};
+
+    const homeData = data[String(home.id)];
+    const awayData = data[String(away.id)];
+
+    if (!homeData || !awayData) {
+      container.innerHTML = `
+        <div class="dashboard-empty">
+          Récupération des données des deux équipes...
+        </div>
+      `;
+      return;
+    }
+
+    if (!window.SPORTPULSE_ANALYSIS) {
+      container.innerHTML = `
+        <div class="dashboard-empty">
+          Le moteur statistique n'est pas disponible.
+        </div>
+      `;
+      return;
+    }
+
+    const homeStats = window.SPORTPULSE_ANALYSIS.summarize(
+      homeData,
+      home.id
+    );
+
+    const awayStats = window.SPORTPULSE_ANALYSIS.summarize(
+      awayData,
+      away.id
+    );
+
+    const format = (value, suffix = "") =>
+      window.SPORTPULSE_ANALYSIS.format(value, suffix);
+
+    const metric = (label, homeValue, awayValue) => `
+      <div class="match-analysis-row">
+        <span>${label}</span>
+        <strong>${homeValue}</strong>
+        <strong>${awayValue}</strong>
+      </div>
+    `;
+
+    container.innerHTML = `
+      <div class="match-analysis-grid">
+        <div class="match-analysis-team">
+          <h4>${this.escapeHTML(home.name || "Domicile")}</h4>
+          <span>${homeStats.sampleLabel}</span>
+        </div>
+        <div class="match-analysis-team">
+          <h4>${this.escapeHTML(away.name || "Extérieur")}</h4>
+          <span>${awayStats.sampleLabel}</span>
+        </div>
+      </div>
+
+      <div class="match-analysis-table">
+        ${metric("Victoires", homeStats.wins, awayStats.wins)}
+        ${metric("Matchs nuls", homeStats.draws, awayStats.draws)}
+        ${metric("Défaites", homeStats.losses, awayStats.losses)}
+        ${metric("Points moyens", format(homeStats.averagePoints), format(awayStats.averagePoints))}
+        ${metric("Buts marqués / match", format(homeStats.averageGoalsFor), format(awayStats.averageGoalsFor))}
+        ${metric("Buts encaissés / match", format(homeStats.averageGoalsAgainst), format(awayStats.averageGoalsAgainst))}
+        ${metric("Matchs sans encaisser", format(homeStats.cleanSheetRate, "%"), format(awayStats.cleanSheetRate, "%"))}
+        ${metric("Matchs sans marquer", format(homeStats.failedToScoreRate, "%"), format(awayStats.failedToScoreRate, "%"))}
+        ${metric("Plus de 2,5 buts", format(homeStats.over25Rate, "%"), format(awayStats.over25Rate, "%"))}
+        ${metric("Les deux équipes marquent", format(homeStats.bothScoredRate, "%"), format(awayStats.bothScoredRate, "%"))}
+      </div>
+
+      <p class="dashboard-subtitle">
+        Analyse descriptive uniquement. Les pourcentages sont calculés
+        sur les matchs disponibles, sans garantie de résultat futur.
+      </p>
+    `;
+  },
+
+  // ==========================================
   // CHAMPIONNATS API NINJAS
   // ==========================================
 
@@ -683,6 +769,11 @@ const App = {
       ) return;
 
       this.renderTeamForm(data, teamId, teamName);
+
+      this.analysisTeamData = this.analysisTeamData || {};
+      this.analysisTeamData[String(teamId)] = data;
+
+      this.renderAnalysisCentre();
 
     } catch (error) {
       console.error("SPORTPULSE TEAM FORM:", error);
@@ -888,6 +979,7 @@ const App = {
 
   openMatchDetail(match) {
     this.selectedMatch = match;
+    this.analysisTeamData = {};
 
     const listView = document.getElementById("matches-list-view");
     const detailView = document.getElementById("match-detail-view");
@@ -999,10 +1091,12 @@ const App = {
 
         <div class="match-detail-section">
           <h3>Centre d'analyse</h3>
-          <p>
-            Les données statistiques serviront de base aux prochaines analyses
-            et estimations de probabilités.
-          </p>
+          <p>Indicateurs calculés sur les cinq derniers matchs terminés.</p>
+          <div id="match-analysis-content">
+            <div class="dashboard-empty">
+              En attente des données des deux équipes...
+            </div>
+          </div>
         </div>
 
         <div class="match-detail-grid">
